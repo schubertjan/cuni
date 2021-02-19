@@ -1,5 +1,9 @@
-mal/data/*
-mal/swirl/*
-mal/test/*
-mal/ukoly/*
-mal/*.Rhistory
+**/data
+**/swirl
+**/test
+**/ukoly
+*.csv
+*.sav
+.Rhistory
+.Rproj.user
+.vscode/

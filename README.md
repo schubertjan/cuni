@@ -1,0 +1,1 @@
+Tyto adresáře obsahují materiál k přednáškám Matematika a Logika a Úvod do statistiky na FSV UK. 
