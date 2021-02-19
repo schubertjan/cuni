@@ -1,0 +1,203 @@
+---
+title: "Vyuziti teorie mnozin pri praci s daty"
+author: Ivan Petrusek, Jan Schubert
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+V tomto cviceni se zamerime na vyuziti teorie mnozim pri praci s daty. Probereme nasledujici zakladni operace:
+
+* mohutnost mnoziny (pocet unikatnich prvku mnoziny)
+* prunik dvou mnozin
+* sjednoceni mnozin
+* rozdil dvou mnozin
+
+Tyto mnozinove operace jsou casto vyuzivany pri slucovani dat. Slucovani dat je velmi casta operace pri praci s daty. Dochazi k ni, pokud chceme spojit dve (nebo vice) datove matice z ruznych zdroju. Napriklad mame panelove setreni a potrebujeme spojit datove matice z vice vln. Panelova setreni jsou vyzkumy, ktere v case opakovane dotazuji stejne respondenty (dotazovani probiha v takzvanych vlnach). Kazdy respondent ma standardne napric datovymi soubory prirazeny jedinecny identifikator, na zaklade kterero se slouceni datovych matic realizuje. Dalsi priklad potreby slucovani dat muze nastat, kdyz mame data z mezinarodniho dotaznikoveho setreni (tzn. mame odpovedi od lidi z ruznych zemi) a do techto dat chceme nahrat hodnoty nejakych kontextualnich promennych (napr. miru nezamestnanosti v jednotlivych zemich v sledovanem obdobi.) V tomto pripade by jako identifikator pro slucovani poslouzilo jmeno zeme.
+
+V tomto cviceni budeme ke slucovani pouzivat dve (fiktivni) datove matice. Obe matice obsahuji data za respondenty. Kazdy respondent ma v obou maticich svuj identifikator `id`. Toto cislo je unikatni a kazdy respondent ma svoje cislo. Nekteri respondenti se pritom vyskytuji soucasne v obou maticich. Matice `df1` dale obsahuje informace o vzdelani, veku a pohlavi respondenta. Matice `df2` obsahuje informace o vzdelani respondenta a jeho veku. Pojdme si obe matice vytvorit.
+```{r}
+df1 <- data.frame(id = 1:10, 
+                  vzdelani = factor(x = c(c(1, 2, 2, 3, 1),  
+                                          c(2, 3, 2, 3, 2)), 
+                                    ordered = TRUE, 
+                                    labels = c("zakladni", "stredoskolske", "vysokoskolske")),
+                  vek = c(c(27, 49, 57, 45, 74), 
+                          c(45,51, 19, 59, 37)),
+                  pohlavi = factor(rep(c(1,2), 5), 
+                                   ordered = FALSE, 
+                                   labels = c("muz", "zena")))
+
+df2 <- data.frame(id = 6:14, 
+                  vzdelani = factor(x = c(c(2, 3, 2, 3, 2), 
+                                          c(3, 2, 1, 2)), 
+                                    ordered = TRUE, 
+                                    labels = c("zakladni", "stredoskolske", "vysokoskolske")),
+                  vek = c(c(45,51, 19, 59, 37), 
+                          c(55, 41, 51, 18)),
+                  deti = factor(c(1, 1, 0, 1, 0, 1, 1, 1, 0), 
+                                   ordered = FALSE, 
+                                   labels = c("ne", "ano")))
+```
+
+
+Prvni operace, kterou si ukazeme je mohutnost mnoziny. Mohutnost mnoziny vyjadruje pocet unikatnich (jedinecnych) prvku mnoziny. Pojdme se podivat, kolik unikatnich respondentu obsahuje `df1` a `df2`. Pokud chceme ukazat unikatni prvky nejake mnoziny (napriklad vektoru), muzeme k tomu pouzit funkci `unique`.
+```{r}
+unique(df1$id)
+unique(df2$id)
+```
+
+Vidime, ze `df1` obsahuje 10 unikatnich respondentu a `df2` 9 unikatnich respondentu. Mohutnost mnoziny/vektoru `df1$id` je 10. Mohutnost mnoziny/vektoru `df2$id` je 9.
+
+Ukazme si jeste mohutnost mnoziny na prikladu promenne (vektoru) vzdelani z obou datovych matic. Z hlediska teorie mnozin je mohutnost vlastne delka vektoru, ktery dostaneme volanim funkce unique. Vidime tedy, ze k urceni mohutnosti množiny kombinujeme funkce `unique` a `length`.
+```{r}
+length(unique(df1$vzdelani))
+length(unique(df2$vzdelani))
+```
+
+V obou mnozinach mame 3 unikatni hodnoty (`zakladni`, `stredoskolske` a `vysokoskolske`), obe mnoziny tedy maji mohutnost 3.
+
+
+Pojdme se ted vratit k `id` respondentu. Jak jsme videli, `df1` obsahuje 10 unikatnich id a `df2` obsahuje 9 unikatnich id. Zaroven je ale zrejme, ze nektere id se vyskutuji v obou datovych maticich soucasne. Chceme zjisit, kolik unikatnich respondentu mame dohromady v obou datovych maticich. K tomu vyuzijeme sjednoceni mnozin, pro ktere je v `R` funkce `union`. Sjednocenim obou mnozin bude tedy mnozina, ktera obsahuje vsechny prvky (hodnoty promenne id), ktere jsou prvky alespon jedne z mnozin.
+```{r}
+sjednoceni <- union(df1$id, df2$id)
+print(sjednoceni)
+print(paste0("pocet unikatnich respondentu: ", length(sjednoceni)))
+```
+
+Nebo muzeme vyuzit funkce, ktere uz zname: `c` a `unique`.
+```{r}
+sjednoceni2 <- unique(c(df1$id, df2$id))
+print(sjednoceni2)
+sjednoceni == sjednoceni2
+```
+
+Ted jiz vime, kolik unikatnich respondentu mame v obou datovych maticich. Kolik respondentu mame soucasne v `df1` a v `df2`? Jinymi slovy, chceme identifikovat respondenty, kteri patri zaroven do obou mnozin. Zajimame se tedy o prunik obou mnozin, pro ktery je v `R` funkce `intersect`.
+```{r}
+prunik <- intersect(df1$id, df2$id)
+print(prunik)
+print(paste0("pocet respondentu vyskytujicih se v obou maticich: ", length(prunik)))
+```
+
+Stejne tak muzeme pouzit k vypocteni pruniku mnozin pomoci logickych operaci. My jsme si ukazali, jak pouzivat relacni operatory `==` nebo `=!` k tomu, abychom zjistili jake prvky vektoru se rovnaji urcite hodnote. Pokud chceme porovnat prvky vektoru s vice nez jednou hodnotou (napriklad k dalsimu vektoru), pouzijeme k tomu operator `%in%`. Pokud bychom tedy chteli vedet, ktere prvky z datove matice `df1$id` jsou ve vektoru `df2$id`, tak toho muzeme dosahnout pomoci tohoto kodu.
+```{r}
+# vytvorime logicky vektoro velikosti vektoru df1$id
+prunik2 <- df1$id %in% df2$id
+# nyni muzeme pouzit vsechny logicke operace, ktere uz zname
+# jako napr k indexovani hodnot
+df1$id[prunik2]
+# nebo ke zjisteni poctu shodnych prvku
+sum(prunik2)
+```
+
+Dalsi, co nas bude zajimat jsou respondenti, kteri jsou pouze v `df1` nebo pouze v `df2`. Tato operace odpovida rozdilu mnozin `df1$id` a `df2$id`. Rozdil mnozin muzeme v `R` zjistit pomoci funkce `setdiff`. U rozdilu mnozin zalezi na poradni jednotlivych mnozin. Tudiz je dulezite zvazit, o jaky rozdil se v konkretnim pripade zajimame.
+
+```{r}
+# respondenti pouze v df1
+pouze_df1 <- setdiff(df1$id, df2$id)
+print("Respondenti v df1 a ne df2:") 
+print(pouze_df1)
+
+# respondenti pouze v df2
+pouze_df2 <- setdiff(df2$id, df1$id)
+print("Respondenti v df2 a ne df1:")
+print(pouze_df2)
+
+# Symetricky rozdil dvou mnozin = mnozina, ktera obsahuje vsechny prvky z obou mnozin, ktere nejsou v pruniku techto mnozin. Symetricky rozdil je tedy vlastne sjednoceni dvou rozdilu mnozin: df1$id - df2$id a df2$id - df1$id
+symetricky_rozdil <- c(pouze_df1, pouze_df2)
+print("Respondenti pouze v df1 nebo pouze v df2")
+print(symetricky_rozdil)
+print(paste0("pocet respondentu pouze v df1 nebo pouze v df2: ", length(symetricky_rozdil)))
+```
+
+Podobne opet muzeme pouzit operator `%in%`. Pokud potrebujeme zjistit, zda se prvky vektoru nerovnaji prvkum jineho vektoru, pridame pred dany vektor `!`.
+```{r}
+### respondenti pouze v df1
+# vytvorime logicke vektory
+pouze_df1_ <- !df1$id %in% df2$id
+print("Respondenti v df1 a ne df2:") 
+print(df1$id[pouze_df1_])
+
+### respondenti pouze v df2
+pouze_df2_ <- !df2$id %in% df1$id
+print("Respondenti v df2 a ne df1:")
+print(df2$id[pouze_df2_])
+
+# Symetricky rozdil dvou mnozin
+symetricky_rozdil_ <- c(df1$id[pouze_df1_], df2$id[pouze_df2_])
+print("Respondenti pouze v df1 nebo pouze v df2")
+print(symetricky_rozdil_)
+print(paste0("pocet respondentu pouze v df1 nebo pouze v df2: ", length(symetricky_rozdil_)))
+```
+\  
+\ 
+\ 
+
+Jak jsme zminili na zacatku. Tyto operace se pri praci s daty nejcasteji vyuzivaji pri slucovani/spojovani dat, tedy operaci kdy chceme sloucit dve datove matice. Ke spojovani dvou datovych matic se v `R` pouziva funkce `merge`. Pojdme se podivat na napovedu `?merge`. Jako prvni dva argumenty `x` a `y` pouzijeme datove matice, ktere chceme spojit. Dalsimi dulezitymi argumenty jsou `by`, pripadne `by.x` a `by.y`. V nich rekneme `R`, jake promenne (sloupce) z datovych matic ma pouzit na spojeni (to znamena, argument `by` definuje identifikacni promenne). Pokud maji oba sloupce stejne jmeno, muzeme pouzit argument `by`. Pokud maji sloupce, pres ktere budeme spojovat, jina jmena, specifikujeme jmeno sloupce z prvni datove matice v `by.x` a jmeno sloupce z druhe datove matice v `by.y`. Argumenty `all`, `all.x` a `all.y` pote specifikuji, jakym zpusobem chceme datove matice sloucit/spojit, tedy zda chceme prunik, sjednoceni nebo rozdil datovych matic.    
+
+Strategie spojovani zalezi na konkretni otazce, kterou chceme v nasi analyze zodpovedet. My si ukazeme nejcastejsi strategie, ktere odpovidaji operacim s mnozinami, jez jsme si ukazovali drive. Pokud nektera promenna existuje pouze v jedne datove matici (napriklad promenna `pohlavi` je pouze v `df1`), tak po slouceni datovych matic bude mit tato promenna u pripadu z druhe datove matice (`df2`) pouze chybejici hodnoty (`NA`).
+V nasledujicich prikladech pouzivame pro slucovani soucasne tri identifikacni promenne (`id`, `vzdelani` a `vek`). Tyto promenne se totiz nachazi soucasne v obou datovych maticich.
+Nize si vsimneme, ze po realizovani ruznych druhu slucovani (tzn. *full*, *inner*, *right*, *left*) ma sloucena datova matice vzdy 5 promennych. Obe puvodni datove matice (`df1` a `df2`) pritom mely 4 promenne.
+
+**Sjednoceni**
+![](/home/schubertj/cuni/mal/cviceni_7/imgs/sjednoceni.png)
+```{r}
+# Sjednoceni mnozin 
+# z hlediska spojovani dat nazyvame tento druh slouceni dat: FULL JOIN (pozadujeme respondenty, kteri jsou alespon v jednom datovem souboru)
+## union(df1$id, df2$id)
+sjednoceni_df <- merge(x = df1, y = df2, by =  c("id", "vzdelani", "vek"), all.x = TRUE, all.y = TRUE)
+print(sjednoceni_df)
+nrow(sjednoceni_df) == length(sjednoceni)
+```
+
+
+**Prunik**
+![](/home/schubertj/cuni/mal/cviceni_7/imgs/průnik.png)
+
+```{r}
+# Prunik mnozin
+# z hlediska spojovani dat nazyvame tento druh slouceni dat: INNER JOIN (pozadujeme pouze respodenty, kteri jsou soucasne v obou datovych souborech)
+## intersect(df1$id, df2$id)
+prunik_df <- merge(x = df1, y = df2, by =  c("id", "vzdelani", "vek"), all.x = FALSE, all.y = FALSE)
+print(prunik_df)
+nrow(prunik_df) == length(prunik)
+```
+
+
+
+**Rozdil df1 a df2 (df1 - df2)**
+![](/home/schubertj/cuni/mal/cviceni_7/imgs/df1 - df2.png)
+```{r}
+# RIGHT JOIN (nasledujici spojeni dat pridava pozadovane hodnoty z matice vlevo (df1) do datove matice VPRAVO (df2))
+# Pozadujeme tedy pouze respondenty, kteri jsou v matici df2 (all.y = TRUE) - vecnym cilem je, aby se do matice df2 nahraly dostupne hodnoty promenne pohlavi (z matice df1)
+df2_ <- merge(x = df1, y = df2, by =  c("id", "vzdelani", "vek"), all.x = FALSE, all.y = TRUE)
+print(df2_)
+
+### Rozdil df1 a df2 (df1 - df2)
+# potrebujeme vybrat ze sjednocene matice pouze ty pripady, ktere nejsou v df2_ (tzn. matici df2_ vytvorene v predchazejicim kroku prostrednictvim RIGHT JOIN)
+pouze_df1_df <- sjednoceni_df[!sjednoceni_df$id %in% df2_$id, ]
+print(pouze_df1_df)
+
+nrow(pouze_df1_df) == length(pouze_df1)
+```
+
+
+
+**Rozdil df2 a df1 (df2 - df1)**
+![](/home/schubertj/cuni/mal/cviceni_7/imgs/df2 - df1.png)
+```{r}
+# LEFT JOIN (nasledujici spojeni dat pridava pozadovane hodnoty z matice vpravo (df2) do datove matice VLEVO (df1))
+# Pozadujeme tedy pouze respondenty, kteri jsou v matici df1 (all.x = TRUE) - cilem je, aby se do matice df1 nahraly dostupne hodnoty promenne deti (z matice df2)
+df1_ <- merge(x = df1, y = df2, by =  c("id", "vzdelani", "vek"), all.x = TRUE, all.y = FALSE)
+print(df1_)
+
+### Rozdil df2 a df1 (df2 - df1)
+# potrebujeme vybrat ze sjednocene matice pouze ty pripady, ktere nejsou v df1_ (tzn. matici df1_ vytvorene v predchazejicim kroku prostrednictvim LEFT JOIN)
+pouze_df2_df <- sjednoceni_df[!sjednoceni_df$id %in% df1_$id, ]
+print(pouze_df2_df)
+
+nrow(pouze_df2_df) == length(pouze_df2)
+```
+

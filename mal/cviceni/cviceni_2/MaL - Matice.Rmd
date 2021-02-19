@@ -1,0 +1,213 @@
+---
+title: "Matimetika a Logika - Cviceni 2 (Matice)"
+author: "Jan Schubert, Ivan Petrusek"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Hlavnimi cili tohoto cviceni jsou:
+
+1. Z hlediska R je cilem definovat novy objekt tridy matrix a ukazat/naznacit tri ruzne zpusoby vytvareni matic v R (rbind, cbind a matrix)
+2. Dale z hlediska R predstavime subsetting objektu (zejmena matic) a ukazeme instalaci balicku "pracma" (z tohoto balicku budeme pouzivat funkce Rank a Trace)
+3. Z hlediska matematiky je primarnim cilem demonstrovat zakladni operace s maticemi: transpozice matice, nasobeni matice skalarem, scitani matic a nasobeni matic
+4. Vypocet tri dulezitych "charakteristik" matic: hodnost, determinant a stopa
+
+
+Nejdrive si vytvorime 3 vektory o delce 4, ktere budou reprezentovat rok narozeni, vysku a jmeno ucastniku.
+```{r}
+rok_narozeni <- c(2000, 1999, 2000, 2001)
+vyska <- c(167, 176, 189, 181)
+jmeno <- c("Petr", "Jakub", "Pavel", "Jindra")
+```
+
+
+Matice je slozena z jednoho nebo vice radku a sloupcu. Radky se casto oznacuji pismenem $i$, sloupce pak pismenem $j$. Jednotlive elementy matice se oznacuji jako $a_{i,j}$. Hodnota v druhem radku a prvnim sloupci by tedy byla oznacena jako $a_{2,1}$
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Matrix.svg/247px-Matrix.svg.png) 
+
+Zdroj: Wikipedia
+
+
+Nyni z techto dvou numerickych vektoru vytvorime matici M. Jednim ze zpusobu, jak ji vytvorit je pomoci funkce matrix. Prvnim argumentem teto funkce jsou `data`. Zde specifikujete jednotlive hodnoty, ktere chceme do matice dosadit. Vsimnete si, ze zde pouzijeme funckci `c`, abychom spojili dva vektory. Jejich spojenim vznikne jeden vektor. 
+```{r}
+print(c(rok_narozeni, vyska))
+```
+
+
+Dalsim argumentem je pocet radku (`nrow`) a sloupcu (`ncol`). V nasem pripade mame 4 pozorovani (4 ucastniky kurzu) a 2 promenne (rok narozeni a vysku). Poslednim argumentem, ktery pouzivame je zda chceme vyplnit hodnoty radkem nebo sloupcem. `byrow` znamena, ze prvni hodnota nasich dat bude $M_{1,1}$, druha hodnota nasich dat bude vyplnena na pozici $M_{1,2}$ atd. Pokud zvolime `byrow=FALSE` bude prvni hodnota nasich dat vyplnena do $M_{1,1}$, druha hodnota nasich dat do $M_{2,1}$ atd. V nasem pripade chceme, aby prvni sloupec znacil vek narozeni a uvedeme tedy `byrow=FALSE`.
+```{r}
+matice_student <- matrix(data = c(rok_narozeni, vyska), 
+                         nrow = 4, 
+                         ncol = 2, 
+                         byrow = FALSE)
+print(matice_student)
+```
+
+
+Tridu objektu muzeme potvrdit pomoci funkce `class`.
+```{r}
+class(matice_student)
+```
+
+
+Pocet radku a sloupcu matice muzeme zobrazit pomoci funkce `dim`. Nase matice ma 4 radky a 2 sloupce. Vystupem funkce `dim` je vektor, ktery muzeme ulozit do noveho objektu a pouzit ho dale, pokud bude potreba.
+```{r}
+dimenze_matice <- dim(matice_student)
+print(dimenze_matice)
+```
+
+
+Dalsim zpusobem jak vytvorit matici je pomoci funkci `cbind` nebo `rbind`. Obe funkce spoji vektory jako sloupce nebo jako radky. 
+```{r}
+cbind(rok_narozeni, vyska)
+rbind(rok_narozeni, vyska)
+```
+
+
+Matice v R se vyznacuje tim, ze vsechny prvky musi byt stejneho typu (character, numeric, logical). Pokud se budeme snazit vytvorit matici, ktera se sklada z ruznych typu vektoru, hodnoty se automaticky ponizi na nizsi tridu. V priklade dole se snazime kombinovat ciselne a textove hodnoty. R vytvori matici, kde budou numericke hodnoty ponizeny na textove.
+```{r}
+matrix(c(1,2,"Tomas"), ncol = 1, nrow = 3)
+```
+
+
+Radky a slopuce matice muzeme pojmenovat, abychom meli lepsi prehled o tom, co jednotlive radky/sloupce vyjadruji. V nasem pripade vyjadruji jednotlive radky jmena ucastniku a sloupce rok narozeni a vysku.
+```{r}
+rownames(matice_student) <- jmeno
+colnames(matice_student) <- c("rok_narozeni", "vyska")
+print(matice_student)
+```
+
+
+Nyni se zamerime na nektere matematicke operace s maticemi. Vytvorime si k tomu tri nove matice X, Y a Z.
+```{r}
+X <- matrix(c(2, 0, 1, 0, 2, 3),
+            byrow = TRUE,
+            nrow = 2,
+            ncol = 3)
+Y <- matrix(c(1, -2, 0, 1, 2, 3),
+            byrow = TRUE,
+            nrow = 2,
+            ncol = 3)
+Z <- matrix(c(1, 2, 0, -1, 1, 1),
+            byrow = TRUE,
+            nrow = 3,
+            ncol = 2)
+```
+
+
+Nejdrive si ukazeme jak udelat transpozici matice. Nasledujici animace znazornuje jak muzeme transpozici provest manualne.
+
+
+![](https://upload.wikimedia.org/wikipedia/commons/e/e4/Matrix_transpose.gif) 
+
+Zdroj: Wikipedia
+
+
+V programu R provedeme transpozici pomoci funkce `t`. 
+```{r}
+t(X)
+```
+
+
+Dale si ukazeme, jak vynasobit matici skalarem. Muzete to udelat tak, ze matici vynasobime pozadovanym cislem. Vysledkem je matice o stejnem poctu radku a sloupcu. Kazdy prvek matice se jednoduse vynasobi. Muzeme tuto operaci take zapsat jako $k * M = k * m_{ij}$, kde $k$ je skalar a $M$ nase matice.  
+```{r}
+X * 3
+```
+
+
+Secteni matice A s matici B $A + B = C$ udelame tak, ze secteme prvky na stejnych radcich a sloupcich $a_{ij} + b_{ij} = c_{ij}$. Scitovat tedy muzeme pouze dve matice se stejnymi dimenzemi.
+```{r}
+X + Y
+```
+
+
+Nasobeni matice A s matici B provedeme tak, ze nejprve provedeme skalarni souci prvniho radku matice A a prvniho sloupce matice B. Dale vezmeme prvni radek matice A a druhy sloupec matice B a vypocitame skalarni soucin. Takto postupujeme dale, dokud neprojdeme vsechny radky a sloupce.
+
+![](https://matematika.cz/content/images/soucin-matic.png) 
+
+Zdroj: matematika.cz
+
+
+V programu R provedeme nasobeni matic pomoci prikazu `%*%`, coz je stejny prikaz, ktery pouzijeme pro skalarni soucin dvou vektoru.
+```{r}
+X %*% Z
+```
+
+Pokud si predstavite nasobeni matice s matici je zrejme, ze ne vsechny matice lze mezi sebou vynasobit. Pokud matice nelze vynasobit, vrati nam R chybu, ze nelze operaci provest.
+```{r}
+tryCatch({X %*% Y}, error = function(e) nasobeni_error <<- e)
+print(nasobeni_error)
+```
+
+
+Jednotlive prvky matice `M` muzeme v R zobrazit pomoci `M[i,j]`, kde `i` vyjadruje radek matice a `j` jeji sloupec. Stejne tak muzeme zobrazit jednotlive prvky vektoru `V`. Protoze vektor nema zadne sloupce, muzete tak udelat pomoci `V[i]`. Dole je nekolik prikladu zobrazeni jednotlivych prvku nebo celych radku/sloupcu.
+```{r}
+#vektory
+rok_narozeni[1]
+# dva prvky vektoru, soucasne prvni a ctvrty prvek
+rok_narozeni[c(1, 4)]
+
+#jeden prvek matice
+matice_student[1, 1]
+#druhy sloupec matice
+matice_student[, 2]
+# prvni a treti radek matice
+matice_student[c(1, 3), ]
+```
+
+
+Nakonec si ukazeme, jak vypocitat hodnost, determinant a stopu matice. Abychom tyto operace mohli provest, musime si nainstalovat externi balicek. Balicky jsou zakladni soucasti ekosystemu R a jsou ulozeny na serveru CRAN. Zakladni instalace programu R obsahuje nekolik klicovych balicku, ktere jsme pouzivali doposud (jako `base`, `graphics` apod.). Tyto balicky jsou stazeny a nainstalovany automaticky pri zakladni instalaci R. Dalsi balicky je potreba instalovat pomoci prikazu `install.packages()`. Pokud uz balicek mate nainstalovany a chcete ho pouzivat, musite to R rici pomoci funkce `library()` (ta nacte tento balicek do vasi session). Dole si ukazeme jak nainstalovat balicek `pracma` a jak ho nacist do nasi soucasne session.
+
+```{r}
+install.packages("pracma")
+library(pracma)
+```
+
+
+Nyni se muzeme pustit do jednotlivych vypoctu. Hodnost matice udava pocet nezavislych sloupcu nebo radku v matici a muzete ji vypocitat pomoci funckce `Rank` z balicku `pracma`. Nadefinujeme si matici A. Pomoci funkce `Rank` zjistime, ze tato matice ma hodnost 2. Existuji tedy 2 nezavisle radky nebou sloupce teto matice.
+```{r}
+# Pouzijeme matice A a C z Prikladu 2 cviceni
+# matici A vytvarime tak, ze uvnitr funkce matrix vytvorime vektor se vsemi prvky matice
+A <- matrix(c(2, 1, 2, 1, 1, 3), byrow = FALSE, nrow = 3)
+print(A)
+Rank(A) # Hodnost matice A
+```
+
+
+Determinant matice vypocitate pomoci funkce `det`. Stopa matice je soucet prvku na hlavni diagonale a muzeme ji vypocitat pomoci funkce `Trace` z balicku `pracma` nebo manualne pomoci souctu (`sum`) diagonalnich prvku (`diag`). Zde je priklad obou vypoctu.
+```{r}
+C <- matrix(c(2, 1, 0, 1, 2, 1, 1, 3, 2), byrow = FALSE, nrow = 3)
+print(C)
+det(C)
+Trace(C)
+sum(diag(C))
+```
+
+
+Determinant a stopu je mozne spocitat pouze pro ctvercove matice. V pripade, ze matice neni ctvercova nam vrati R chybu dane operace.
+```{r}
+tryCatch({det(A)}, error = function(e) det_error <<- e) 
+# ukazka ERROR: determinant lze pocitat pouze pro ctvercovou matici
+print(det_error)
+```
+
+```{r}
+tryCatch({Trace(A)}, error = function(e) trace_error <<- e)
+# ukazka ERROR: stopu lze pocitat pouze pro ctvercovou matici
+print(trace_error)
+```
+
+
+Bonus: Jako bonus, ktery neni povinny, ale je uzitecny, zminime funkce `colMeans` a `rowMeans`. Tyto funkce slouzi k vypoctu prumeru hodnot sloupce nebo radku. Stejne tak muzeme vypocitat sumu hodnot sloupce/radku pomoci funkci `colSums`/`rowSums`. Tyto operace jsou uzitecne, kdyz chceme vypocitat nejake souhrnne statistiky nasich dat. Pokud by nas napriklad zajimal prumerny vek a vyska ucastniku kurzu, muzete je vypocitat pomoci nasledujiciho kodu.
+```{r}
+# nejdrive vypocitame vek misto roku narozeni. Vyslednou hodnotu nahradime hodnotu v prvnim sloupci matice "matice_student"
+matice_student[, 1] <- 2020 - matice_student[, 1]
+# a zmenime jmeno tohoto sloupce
+colnames(matice_student)[1] <- "vek"
+
+#vypocitat prumer vsech sloupcu v matici
+colMeans(matice_student)
+```

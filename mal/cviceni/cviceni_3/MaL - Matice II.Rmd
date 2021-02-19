@@ -1,0 +1,173 @@
+---
+title: "MaL - Matice II."
+author: "Jan Schubert, Ivan Petrusek"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+V tomto cviceni budeme pokracovat v operacich s maticemi. Nejdrive si ukazeme (pripomeneme), jak vypocitat system linernich rovnic. Ve cviceni 1 jsme pocitali, zda je soustava vektoru linearne zavisla/nezavisla. Tehdy jsme resili soustavu rovnic podobnou teto:
+
+![](C:/Users/schubertj/OneDrive - Kantar/Documents/MaL/Cviceni 3/zavislost_vektoru.png)
+
+Zdroj: Matematika.cz
+
+
+Je to specificky pripad, kdy resime, zda se tato soustava rovna 0. Stejne tak muzeme resit, zda se urcita soustava rovna necemu jinemu. Obecne se to da zapsat jako:
+
+![](C:/Users/schubertj/OneDrive - Kantar/Documents/MaL/Cviceni 3/soustava_rovnic.png)
+
+Zdroj: Matematika.cz
+
+
+My uz vime, ze k reseni takove soustavy se da pouzit funkce `solve`. Zkuste tedy vyresit tento priklad. 
+
+![](C:/Users/schubertj/OneDrive - Kantar/Documents/MaL/Cviceni 3/priklad_1.png)
+
+```{r}
+# nejprve si prepiseme matici.
+M <- matrix(c(1,2,1,3,2,-2,2,5,-5), byrow = TRUE, ncol = 3, nrow = 3)
+
+#definujeme vysledek na prave strane rovnice
+b = c(4,3,2)
+
+#pomoci funkce solve vyresime x,y a z
+reseni <- solve(M, b)
+print(reseni)
+```
+
+
+Nyni zkusme dosadit do rovnice, zda odpovida vysledku
+```{r}
+M %*% reseni 
+```
+
+Muzeme take vyuzit logicky operator `==` a porovnat, zda se reseni rovna b
+```{r}
+M %*% reseni == b
+```
+
+
+Dale se pustime do vypoctu inverzni matice. Nejcasteji pouzivanou metodou je Gaussova-Jordanova metoda eliminace, jejiz princip spociva v tom, ze si k matici M vytvorime jednotkovou matici a upravujeme ji spolecne s matici M dokud na leve strane nemame jednotkovou matici. Zkusme vypocitat inverzni matici k teto matici
+
+![](C:/Users/schubertj/OneDrive - Kantar/Documents/MaL/Cviceni 3/priklad_2.png)
+
+```{r}
+#nejprve si vytvorime matici C
+C <- matrix(c(3,1,3,5,2,5,3,1,4), byrow = TRUE, ncol = 3, nrow = 3)
+
+# k ni si vytvorime jednotkovou matici
+I3 <- matrix(c(1,0,0,0,1,0,0,0,1), nrow = 3, ncol = 3, byrow = TRUE)
+
+# ted obe matice sloucime tak, abychom meli matici C na leve strane a jednotkovou matici na prave strane
+CI <- cbind(C, I3)
+print(CI)
+
+# 1. SLOUPEC
+## zacneme s tim, ze prvni radek vydeline 3
+CI[1, ] <- CI[1, ] * 1/3
+print(CI)
+## nyni se budeme snazit eliminovat prvni sloupec. Cilem je nim v prnim sloupci 1,0,0
+### prvni radek vynasobime -5 a pricteme v druhemu radku
+CI[2, ] <- CI[1, ] * -5 + CI[2, ]
+print(CI)
+### treti radek prvni sloupec ilinujeme podobne tak ze vynasobime prvni radek -3 a pricteme ke tretimu
+CI[3, ] <- CI[1, ] * -3 + CI[3, ]
+print(CI)
+### Poznamka: Vidime, ze na tretim radku (v prvnich trech sloupcech) uz mame k dispozici pozadovany treti radek jednotkove matice. Jinymi slovy, treti radek je "hotovy" - nemusime uz delat zadne upravy na tretim radku
+
+# 2. SLOUPEC
+## druhy sloupec uz mame skoro hotovy. Schazi nam pouze premenit 1/3 na 1 v druhem radku a na 0 v prvnim. Nejdrive upravime druhy radek tak, aby byl rovny 1. To udelame tak, ze ho vynasobime 3  
+CI[2, ] <- CI[2, ] * 3
+print(CI)
+## Eliminace druheho sloupce >>> vidime, ze musime eliminovat pouze 1/3 v prvnim radku. To udelame tak,  ze druhy radek vynasobime -1/3 a pricteme 
+CI[1, ] <- CI[2, ] * -1/3 + CI[1, ]
+print(CI)
+
+# 3. SLOUPEC
+## Nakonec uz nam pouze zbyva odstranit z prvniho radku ve trenim slopci 1. To udelame tak, ze odecteme treti radek * -1 od prvniho
+CI[1, ] <- CI[3, ] * -1 + CI[1, ]
+print(CI)
+
+# ZKOUSKA SPRAVNOSTI
+# ziskali jsme tak na prave strane inverzni matici k puvodni matici. Muzeme si ji ulozit do objektu C_inverse
+
+C_inverse <- CI[, 4:6]
+### Zkouska spravnosti: vynasobime matici C a inverzni matici k matici C 
+# >>> pokud byla inverzni matice vypocitana spravne, tak vysledkem maticoveho soucinu je jednotkova matice
+C %*% C_inverse
+```
+
+
+Celou tuto operaci muzeme provest pomoci funkce `solve`. Zkusme tedy nyni provest stejnou operaci, ale pomoci `solve`.
+```{r}
+solve(C)
+```
+
+
+Jako posledni vypocitame nasledujici priklad:
+![](C:/Users/schubertj/OneDrive - Kantar/Documents/MaL/Cviceni 3/priklad_3.png)
+
+```{r}
+# definujme si zname matice 
+D <- matrix(c(2, 1, 6, 5), nrow = 2, ncol = 2, byrow = TRUE)
+E <- matrix(c(2, 2, 6, 4), nrow = 2, ncol = 2, byrow = TRUE)
+
+### Podrobne vysvetleny vecny postup (samotny vypocet v R je velmi jednoduchy):
+# 1.) Obe matice jsou ctvercove >>> matice X bude taky ctvercova (2x2)
+# 2.) Potrebujeme matici D odstranit z leve strany rovnice a dostat ji na pravou stranu rovnice. 
+# Vime pritom, ze pokud vynasobime matici D inverzni matici k matici D, tak vysledkem maticoveho soucinu je jednotkova matice.
+# Obe strany maticove rovnice tudiz musime ZPRAVA vynasobit D-1 (inverzni matici k matici D):   XDD-1 = ED-1
+# Levou stranu zjednodusime na XI (protoze DD-1 = I)
+# Z prednasky vime, ze pokud vynasobime jakoukoli ctvercovou matici jednotkovou matici, tak vysledkem maticoveho soucinu je puvodni ctvercova matice
+# >>> Levou stranu muzeme zjednodusit na X (XI = IX = X)
+# 3.) Resenim maticove rovnice je tedy: X = ED-1
+# V R vypocitame inverzni matici k matici D s vyuzitim funkce solve (inverzni matici tady neukladam do objektu)
+X <- E %*% solve(D)
+print(X)
+
+# zkouska spravnosti
+X %*% D
+X %*% D == E
+```
+
+
+Tolik k dnesnim matematickym cvicenim. Nyni si prestavime dalsi koncept z R. Je to pravdepodobne vubec nejpouzivanejsi objekt, s kterym se v R setkate a rika se mu `data.frame` (datova matice). `data.frame` je velmi podobny objektu `matrix`. Jeho hlavnim rozdilem je to, ze jeho promenne nemusi byt stejne tridy. Muzeme tedy kombinovat ruzne tridy bez toho, aniz bychom zmenili tridy ostatnich promennych.
+
+Vratme se k nasemu prikladu z minule hodiny.
+```{r}
+rok_narozeni <- c(2000, 1999, 2000, 2001)
+vyska <- c(167, 176, 189, 181)
+jmeno <- c("Petr", "Jakub", "Pavel", "Jindra")
+```
+
+`data.frame` vytvorime pomoci funckce `data.frame()`. Zkuste se podivat na jeji napovedu `?data.frame`.
+```{r}
+df <- data.frame(rok_narozeni, vyska, jmeno)
+```
+
+Na `data.frame` muzete pouzit vsechny funkce, ktere jsme si ukazali na prikladu matic. Tedy:
+```{r}
+dim(df)
+class(df)
+str(df)
+
+df[1, ]
+df[c(1,4), ]
+df[, "jmeno"]
+df[, c(1:2)]
+```
+
+
+U objektu tridy `data.frame` muzeme sloupce datove matice subsettovat jejich jmeny s vyuzitim operatoru `$`.
+```{r}
+df$vyska
+```
+
+Stejne tak muzeme operator `$` pouzit k prirazeni novych promennych
+```{r}
+df$vek <- 2020 - df$rok_narozeni
+print(df)
+```

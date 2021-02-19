@@ -1,0 +1,211 @@
+---
+title: "Pravdepodobnost I. (kombinatorika a uvod do pravdepodobnosti)"
+author: "Ivan Petrusek, Jan Schubert"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Cilem tohoto cviceni je ukazat vyuziti R k pocitani prikladu z kombinatoriky a pravdepodobnosti. Zaroven si zopakujeme programovani funkci a for loops.
+
+
+Zjednodusene receno, pravdepodobnost je cetnost jevu, ktery nas zajima, vydelena celkovym poctem moznych jevu, ktere mohou nastat. Pravdepodobnost nabyva hodnot z intervalu od 0 (nemozny jev) do 1 (jisty jev). Nejjednodussi priklad, na kterem si koncept pravdepodobnosti muzeme ukazat, je hod minci. Zajima nas pravdepodobnost, ze pri hodu minci padne orel. Minci budeme hazet pouze jednou, tedy pocet moznych jevu, ktere mohou nastat je 2 (panna a orel). Jev, ktery nas zajima je orel. Tedy pravdepodobnost, ze padne orel je $P(orel) = orel / orel + panna$.   
+
+```{r}
+# mozne jevy (vsechny mozne jevy oznacujeme z hlediska teorie pravdepodobnosti jako vyberovy prostor (S))
+mozne_jevy <- c("orel", "panna")
+# vybereme si jev, ktery nas zajima a ten vydelime poctem moznych jevu
+p_orel <- length(mozne_jevy[mozne_jevy=="orel"]) / length(mozne_jevy)
+p_orel
+```
+
+Vypoctu pravdepodobnosti pomoci vzorce se nekdy rika analyticke reseni. Je to takove reseni, ktere se da vypocitat pomoci vzorecku. Pravdepodobnost je ale take definovana jako relativni cetnost nejakeho jevu (pri nekonecnem poctu realizaci pokusu), muzeme ji aproximovat tak, ze budeme opakovat vyber z nejake mnoziny moznych jevu. Takovemu pristupu k odhadu pravdepodobnosti se rika simulace. Analyticky postup ma vyhodu, ze je rychlejsi na vypocitani. Ne vzdy je ale mozne pravdepodobnost vypocitat, protoze ne vzdy zname vsechny mozne jevy. V takovych pripadech se pouziva simulace.
+
+
+K simulaci v R slouzi funkce `sample`. Vyber prvku z mnoziny muzeme udelat dvema zpusoby:
+
+1. **S vracenim** (with replacement) - vybereme prvek z mnoziny a vratime ho zpet do mnoziny.
+
+2. **Bez vraceni** (without replacement) - vybereme prvek z mnoziny, ale uz ho zpet nevratime. To znamena, ze v dalsich vyberech uz tento prvek nemuze byt vybran.
+
+Pojdme si ukazat, jak tato funkce bude fungovat na nasem pripade hodu minci. Hazime minci pouze jednou.
+
+```{r}
+# vybereme nahodne orla nebo pannu z mnoziny jevu bez opakovani
+sample(x = mozne_jevy, size = 1, replace = FALSE)
+```
+
+
+Pokud by jsme chteli aproximovat relativni cetnost jevu `orel`, budeme muset simulovat hod minci vice nez jednou. V takovem pripade budeme realizivat vyber s vracenim (jinak bychom po dvou hodech nemeli z ceho vybirat). Pojdme si ukazat, jak by vypadala tato relativni cetnost, kdybychom simulovali 10 hodu minci.
+```{r}
+hod_10 <- sample(x = mozne_jevy, size = 10, replace = TRUE)
+print(hod_10)
+length(hod_10[hod_10=="orel"]) / length(hod_10)
+```
+
+
+Mozna vam nevysel vysledek, ktery byste ocekavali (tedy telativni cetnost/pravdepodobnost 0.5). To je proto, ze jsme minci hodili pouze 10 krat. Protoze kazdy hod minci je nezavisly (jeden hod neovlivnuje to, co padne v dalsim hodu), nemusi nam vyjit 5 orlu a 5 pan z 10 hodu (mohlo by nam dokonce vyjit i 0 nebo 10 orlu). Jelikoz se jedna o nahodny jev, v tak malem poctu hodu mohou vyjit ruzne kombinace orlu a panen. Pojdme si ukazat, co by se stalo, kdybychom minci hodili 100 krat. 
+
+Abychom si usetrili cas, naprogramujeme si funkci `hod_minci`, ktera bude zkoumat pravdepodobnost jevu jako relativni cetnost v dlouhe rade opakovanych pokusu. Nase funkce bude mit dva argumenty. Argument `pocet_hodu` bude prirozene cislo (tzn. kolikrat minci hazime). Argument `co_nas_zajima` nabyva pouze dve hodnoty ("panna", "orel"),  podle toho, jestli se zajimame o to, kolikrat dohromady padel orel nebo panna.
+```{r}
+hod_minci <- function(pocet_hodu, co_nas_zajima) {
+  hody <- sample(x = c("panna", "orel"), size = pocet_hodu, replace = TRUE)
+  p <- length(hody[hody == co_nas_zajima]) / length(hody)
+  return(p)
+}
+```
+
+
+Pojdme tedy s vyuzitim nasi nove funkce hodit minci 100x. Zajima nas, kolikrat padne panna.
+```{r}
+hod_100 <- hod_minci(pocet_hodu = 100, co_nas_zajima = "panna")
+hod_100
+```
+
+
+Uz se blizime ocekavane pravdepodobnosti 0,5. Pravdepobnost ma uzitecnou vlastnost, ze pokud zname pravdepobnost jevu, muzeme jednoduse vypocitat pravdepodobnost opacneho jevu tak, ze vypocitame doplnek teto pravdepodobnosti do jedne. Tedy $P(orel) = 1 - P(panna)$.
+```{r}
+1 - hod_100 
+```
+
+
+Jak jsme rekli drive, pravdepodobnost je relativni cetnost nejakeho jevu pri nekonecnem poctu opakovani. My nekonecny pocet opakovani simulovat nemuzeme, ale muzeme vybrat libovolne velike cislo. Pojdme zkusit opakovat hazeni minci 1 000 000 krat.
+```{r}
+hod_milion <- hod_minci(pocet_hodu = 1000000, co_nas_zajima = "panna")
+hod_milion
+```
+
+
+Jak jsme zminili drive, analyticka forma vypoctu pravdepodobnosti (pomoci vzorecku) ma tu vyhodu, ze je rychlejsi na vypocitani. Potrebujeme k ni znat cetnost jevu, ktery nas zajima a vydelit ji cetnosti vsech moznych jevu. K vypocitani poctu vsech moznych jevu pouzivame kombinatoriku (viz prednaska cislo 9). My si ukazeme jak kombinatoricke vypocty provadet pomoci funkci v R. Konkretne predstavime funkce `factorial` (permutace bez opakovani), `prod` (funkce pro zjednodusovani vyrazu s faktorialy nebo vypocet poctu variaci bez opakovani) a `choose` (funkce pro vypocet poctu kombinaci bez opakovani).
+
+Nejdrive si ukazeme jak pouzit funkci `factorial` k vypocitani poctu permutaci bez opakovani. To znamena, ze chceme seradit prvky mnoziny do vsech moznych poradi, pricemz jednotlive prvky se nemohou opakovat. Napriklad nas zajima, kolika zpusoby muze dopadnout fotbalova skupina, v ktere jsou 3 tymy: Cesko, Rakousko, Polsko. V takovemto pripade, bychom mohli vsechny poradi vyjmenovat:
+
+* Cesko, Rakousko, Polsko
+
+* Rakousko, Cesko, Polsko
+
+* Rakousko, Polsko, Cesko
+
+* Cesko, Polsko, Rakousko
+
+* Polsko, Rakousko, Cesko
+
+* Polsko, Cesko, Rakousko
+
+
+Analyticky bychom tuto ulohu vypocitali pomoci faktorialu poctu prvku mnoziny (poctu tymu). 
+```{r}
+factorial(3)
+```
+
+Hodnoty faktorialu rychle rostou. Pokud by skupina mela 8 tymu (jako na MS v hokeji), pocet moznych poradi tymu v osmi-clenne skupine tymu by byl:
+```{r}
+factorial(8)
+factorial(8) == 8 * 7 * 6 * 5 * 4 * 3 * 2 * 1
+```
+
+
+Funkce `prod` je podobna funkci `sum`, ale misto scitani prvku vektoru, prvky nasobime. Funkce `prod` je tedy zaroven podobna funkci `factorial`, ale ma tu vyhodu, ze prvky, ktere chceme nasobit muzeme presne definovat (ve faktorialu vzdy dane cislo nasobime cisly postupne zmensenymi o 1 az po samotnou jednicku). Krome jineho muzeme funkci `prod` vyuzit k vypoctu celkoveho poctu variaci bez opakovani. To znamena, chceme seradit $n$ prvku do usporadanych $k$-tic. Jako priklad pouzijeme opet 8 tymu ve skupine (n = 8). Zajima nas, kolika zpusoby muzeme seradit techto 8 tymu na prvnich 4 mistech tabulky (k = 4). Na prvnim miste muzeme mit 8 tymu, pokud jeden tym pouzijeme na prvnim miste, zbyde nam 7 tymu na druhe misto, 6 tymu na treti misto, 5 tymu na ctvrte misto. Pocitame tedy `prod(8:5)`.
+```{r}
+# Obecne variace bez opakovani pocitame podle vzorce: 𝑉(𝑘,𝑛) = 𝑛.(𝑛−1).….(𝑛−𝑘+1)
+# V nasem pripade vidime, ze cislo na posledni pozici hromadneho soucinu je 5: (𝑛−𝑘+1) = (8-4+1) = 5  
+prod(8:5)
+```
+
+
+Nakonec si ukazeme, jak vyuzit funckci `choose` k vypocitani poctu kombinaci bez opakovani. Priklad na poradi 8 tymu ve skupine uz pouzit nemuzeme, protoze v kombinaci nezalezi na poradi (tedy poradi 1.Slovensko, 2.Cesko, 3.Kanada, 4.Svedsko je stejna podmnozina 8 tymu jako poradi 1.Cesko, 2.Slovensko, 3.Kanada, 4.Svedsko). U kombinaci nezalezi na poradi prvku. Zajima nas ted, jaky je celkovy pocet zapasu, ktery se odehraje ve skupine Mistrovstvi sveta v hokeji, kde je 8 tymu (zapas Cesko-Slovensko je stejny jako Slovensko-Cesko). Funkce `choose` ma vice argumentu. Podivejme se nejdrive na jeji napovedu `?choose`.
+```{r}
+# Celkem mame 8 tymu (n = 8). Jeden zapas hraji 2 tymy (k = 2)
+choose(n = 8, k = 2)
+```
+
+
+Pojdme si nyni procvicit tyto kombinatoricke vypocty na nekterych prikladech ze standardniho cviceni kurzu.
+![](/home/schubertj/cuni/mal/cviceni_8/imgs/priklad_4.png)
+
+Nejdrive spocitame priklad analyticky. Chceme zjistit, kolika zpusoby muzeme vybrat skupinu 2 devcat ze 4 devcat a soucasne kolika zpusoby muzeme vybrat skupinu 4 chlapcu z 8 chalpcu. V obou pripadech se jedna o kombinace bez opakovani
+```{r}
+# kolika ruznymi zpusoby muzeme vybrat skupinu 2 devcat ze 4 devcat
+devcata <- choose(n = 4, k = 2)
+# kolika ruznymi zpusoby muzeme vybrat skupinu 4 chlapcu z 8 chalpcu
+chlapci <- choose(n = 8, k = 4)
+
+# kazdou skupinu devcat muzeme zkombinovat s kazdou skupinou chlapcu (abychom dohromady vytvorili 6-clenne druzstvo), tedy celkove pocty kombinaci devcat a kluku spolu musime vynasobit
+devcata * chlapci
+```
+
+K pocitani tohoto prikladu muzeme vyuzit take funkci `combn`. Tato funkce slouzi k vygenerovani vsech existujicich kombinaci. Podivejme se nejdrive na napovedu teto funkce `?combn`. Nasim cilem tedy bude vygenerovat vsechny kombinace 6-clennych druzstev ze 4 devcat a 8 kluku. Tyto vsechny mozne kombinace ulozime do matice `mozna_druzstva`.
+```{r}
+# Nejdrive vytvorime textovy vektor o delce 12, ktery bude obsahovat 4 devcata a 8 chlapcu. Z tohoto vektoru budeme v dalsim kroku vybirat vsechna mozna sesticlenna druzstva.
+deti <- c(rep("d", 4), rep("ch", 8))
+print(deti)
+# S vyuzitim funkce combn vypocitame vsechna mozna sesticlenna druzstva (jedna se o kombinace bez opakovani: 1 konkretni devce/chlapec muze byt v jednom druzstvu pouze jednou).
+mozna_druzstva <- t(combn(deti, 6))
+class(mozna_druzstva)
+# Vidime, ze celkem existuje 924 moznych kombinaci
+dim(mozna_druzstva)
+```
+
+V dalsim kroku vyuzijeme for loop, abychom vypocitali kolik devcat a kolik kluku se nachazi v kazdem z 924 moznych druzstev. Vime pritom, ze pokud se v druzstvu nachazi prave 2 devcata, tak jsou v druzstvu soucasne i 4 kluci.
+```{r}
+# S vyuzitim for loop vypocitame, kolik devcat je v kazde kombinaci (v kazdem druzstvu). Vysledky jednotlivych iteraci loopu ukladame do matice cetnosti.
+cetnosti <- matrix(rep(NA, nrow(mozna_druzstva)*2), ncol = 2)
+for(i in 1:nrow(mozna_druzstva)){
+  cetnosti[i, 1] <- as.numeric(sum(mozna_druzstva[i, ] == "d"))
+  cetnosti[i, 2] <- as.numeric(sum(mozna_druzstva[i, ] == "ch"))
+}
+
+# Nakonec spocitame odpoved na otazku ze zadani: zajimame se pouze o druzstva, kde jsou dve devcata a ctyri kluci
+table(cetnosti[,1] == 2)
+```
+Vidime, ze mame stejny vysledek (420 zpusobu jak vytvorit druzstva s pozadovanymi vlastnostmi) jako pri analytickem vypoctu s pomoci vzorecku pro vypocet poctu kombinaci.
+
+
+![](/home/schubertj/cuni/mal/cviceni_8/imgs/priklad_5.png)
+
+Nejdrive spocitame priklad analyticky. Zajimame se o jev, ze v druzstvu mame tri chlapce a tri devcata. Presneji receno se zajimame o to, kolika ruznymi zpusoby muzeme takoveto druzstvo vytvorit. Vyberovy prostor tvori vsechna mozna seticlenna druzstva, ktete muzeme ze 4 devcat a 8 kluku vytvorit. Pravdepodobnost, ze v jednom tymu budou tri chlapci a tri devcata vypocitame tak, ze vydelime pocet pripadu odpovidajici tomuto jevu, poctem pripadu ve vyberovem prostoru.
+```{r}
+# kolika zpusoby muzeme vybrat skupinu 3 devcat ze 4 devcat
+devcata_3 <- choose(n = 4, k = 3)
+# kolika zpusoby muzeme vybrat skupinu 3 chlapcu z 8 chalpcu
+chlapci_3 <- choose(n = 8, k = 3)
+
+# kazdou triclennou skupinu devcat muzeme kombinovat s kazdou triclennou skupinou chlapcu, tedy obe skupiny podmnozin musime vynasobit
+to_co_nas_zajima <- devcata_3 * chlapci_3
+
+# kolikrat muzeme vybrat skupiny o velikosti 6 z 12 jednincu (vyberovy prostor)
+pocet_moznych_jevu <- choose(n = 12, k = 6)
+
+p <- to_co_nas_zajima / pocet_moznych_jevu
+p
+
+### Cely vypocet lze zjednodusit na jeden radek kodu
+(choose(n = 4, k = 3)*choose(n = 8, k = 3))/choose(n = 12, k = 6)
+```
+
+Vypocet muzeme provadet take s vyuzitim simulace. U nasledujici simulace opakovane provadime velky pocet vyberu (az milion) bez vraceni z 12-clenne skupiny deti. Z prikladu 4 vime, ze existuje celkem 924 jedinecnych sesticlennych druzstev vytvorenych z 4 devcat a 8 kluku. U simulace tento poznatek ignorujeme a vyuzivame hrubou silu pocitace k opakovanemu vybirani sesticlennych druzstev. V nasem pripade provadime az milion vyberu (je tedy velmi pravdepodobne, ze kazde z 924 jedinecnych druzstev se bude vyskytovat v teto simulaci alespon jednou, vetsina druzstev se bude vyskytovat vicekrat).
+```{r}
+# Opet vytvorime textovy vektor o delce 12, ktery bude obsahovat 4 devcata a 8 chlapcu.
+deti <- c(rep("d", 4), rep("ch", 8))
+
+# Pocet pozadovanych simulaci ulozime do vektoru N (v tomto pripade pozadujeme milion simulaci)
+N <- 1000000
+
+# Vytvorime pomocny vektor counter, do ktereho se bude prubezne ukladat skutecnost, ze jsme v konkretnim opakovani simulace vybrali druzstvo s 3 devcaty a 3 chlapci. Pred provedenim prvni iterace simulace (z milionu iteraci simulace) bude mit vektor counter 0 pozadovanych jevu.
+counter <- 0
+
+# Nakonec naprogramujem for loop, ktery v kazde z milionu iteraci vybere 6 deti a ulozi je do vektoru vyber. Pokud vektor vyber v dane iteraci obsahuje prave 3 devcata  [if(sum(vyber == "d") == 3)], tak se v pomocnem vektoru counter zvysi pocet pozadovanych jevu o 1 [counter <- counter + 1].
+for(n in 1:N){
+  vyber <- sample(x = deti, size = 6, replace = FALSE)
+  if(sum(vyber == "d") == 3) {
+    counter <- counter + 1
+  }
+}
+
+# Ted uz muzeme pristoupit k odhadu pravdepodobnosti. Odhad pravdepodobnosti vypocitame tak, ze podelime pocet vyberu, ktere obsahovali tri devcata a tri chlapce, celkovym poctem vyberu (iteraci simulace).
+p_sim <- counter / N
+p_sim
+```

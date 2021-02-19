@@ -1,0 +1,21 @@
+---
+title: "Popisná statistika"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Nominální
+
+## Ordinální
+
+## Kardinální
+### Diskrétní
+### Spojitá
+
+
+## Průměr
+## Mod
+## Median

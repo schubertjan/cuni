@@ -1,0 +1,208 @@
+---
+title: "Pravdepodobnost II. (Podminena pravdepodobnost a Bayesova veta)"
+author: "Ivan Petrusek, Jan Schubert"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
+```
+
+Cilem tohoto cviceni je ukazat vyuziti R k pocitani prikladu s pravdepodobnostmi. Z teorie pravdepodobnosti na tomto cviceni predstavime **podminenou pravdepodobnost** a **Bayesovu vetu** (jako velmi dulezity vzorec pro praci s podminenymi pravdepodobnostmi). Zaroven si na slavnem problemu z teorie pravdepodobnosti (**Monty Hallova uloha**) procvicime programovani funkci a for loops. Na tomto cviceni take zacneme vyuzivat neomezene graficke moznosti prostredi R.
+\  
+
+Na poslednim cviceni jsme se venovali pravdepodobnosti, konkretne definici pravdepodobnosti a vypoctu pravdepodobnosti pomoci analyticke formy (vzorecek) nebo pomoci simulace. Pouzivali jsme k tomu funkci `sample`, pomoci ktere jsme delali nahodne vybery z nejake mnoziny. Pravdepodobnostni operace jsou ve statistice tak caste, ze na ne v R existuji specialni funkce. My se budeme dale venovat pravdepodobnosti diskretnich jevu (napr. hody minci, hody kostkou apod.). Ukazeme si, jak k tomu pouzit tyto specificke funkce. V navazujicich kurzech statistiky a analyzy dat budeme pracovat nejen s diskretnimi, ale i se spojitymi jevy.
+
+Nejdrive navazeme na priklad z minuleho cviceni, kde jsme simulovali 1 000 000 hodu minci a sledovali, kolikrat padnul orel. U teto simulace jsme predpokladali, ze mame spravedlivou minci (p = 0.5). Pojdme si obdobny pokus provest pomoci funkce `rbinom`. Tato funkce pouziva tzv. **binomicke pravdepodobnostni rozdeleni**, ktere se sklada ze souctu pokusu, ktere mohou mit vysledek 1 nebo 0 (tzv. Bernoulliho pokus). Pokud napriklad hazime minci 10krat, je nejpravdepodobnejsim vysledkem 5 orlu a 5 pannen (za predpokladu, ze je mince spravedliva). Muze se ale take stat, ze padou 3 orli nebo dokonce zadny orel. Binomicke rozdeleni nam rekne, jaka je pravdepodobnost techto jednotlivych jevu (ze padne 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 nebo 10 orlu). Funkce `rbinom` slouzi k nahodnemu realizovani takovychto pokusu. Podivejme se nejdriv na napovedu teto funkce.
+My ted budeme simulovat deset hodu spravedlivou minci. Techto deset hodu budeme opakovat milionkrat. V kazdem z milionu realizaci deseti hodu zaznamename do vektoru `hody` pocet vysledku, o ktere se zajimame (tzn. kolikrat z deseti hodu padnul orel).
+```{r}
+# pocet simulaci
+N <- 1000000
+hody <- rbinom(N, size = 10, prob = 0.5)
+# kolikrat padnul orel pri prvnich 5 realizacich simulace
+head(hody)
+# cetnost jednotlivych vysledku
+table(hody)
+# ukazeme si sloupcovy graf odpovidajici cetnostni tabulce
+barplot(table(hody), main = "Cetnost orla pri 10 hodech spravedlivou minci", ylab = "", ylim = c(0, 250000), las = 1)
+
+# pravdepobnost, ze z deseti hodu padne 3krat orel
+sum(hody==3) / N
+
+# pravdepobnost, ze z deseti hodu padne 0krat orel
+sum(hody==0) / N
+```
+
+Takoveto typy vypoctu, kdy nas zajima pravdepodobnost, kolikrat nastane nejaky vysledek, se provadi casto a existuje k tomu specialni funkce `dbinom`. Pojdme si zkusit analyticky vypocitat priklad nahore pomoci teto funkce. Jinymi slovy, ted pocitame ocekavanou pravdepodobnost (kterou bychom mohli vypocitat dosadenim do vzorecku prislusne pravdepodobnostni funkce). Funkce `dbinom` vezme tri argumenty a dosadi je do vzorecku pravdepodobnostni funkce binomickeho rozdeleni (pro zobrazeni vzorecku viz napovedu funkce `?dbinom`).
+```{r}
+# pravdepobnost, ze z deseti hodu padne 3krat orel
+dbinom(x = 3, size = 10, prob = 0.5)
+
+# pravdepobnost, ze z deseti hodu padne 0krat orel
+dbinom(x = 0, size = 10, prob = 0.5)
+```
+Funkce `rbinom(n, size, prob)` se tedy pouziva k provadeni opakovanych Bernoulliho pokusu. Funkce `dbinom(x, size, prob)` k pocitani pravdepodobnosti, ze nastane pozadovany pocet vysledku opakovanych Bernolliho pokusu.
+
+
+Ted si pojdme ukazat, kolik orlu bychom ocekavali, pokud by mince nebyla spravedliva (napriklad by byla tezsi na jedne strane). Rekneme, ze pravdepodobnost toho, ze padne orel je 0.7.
+```{r}
+N <- 1000000
+cinkle_hody <- rbinom(N, size = 10, prob = 0.7)
+# cetnost jednotlivych vysledku
+table(cinkle_hody)
+# ukazeme si sloupcovy graf odpovidajici cetnostni tabulce
+barplot(table(cinkle_hody), main = "Cetnost orla pri 10 hodech nespravedlivou minci", ylab = "", las = 1)
+
+# pravdepobnost, ze z deseti hodu padne 3krat orel
+sum(cinkle_hody==3) / N
+
+# pravdepobnost, ze z deseti hodu padne 0krat orel
+sum(cinkle_hody==0) / N
+```
+\
+
+
+Doposud jsme si ukazovali priklady pravdepodobnosti jednoho jevu. Nyni nas bude zajimat pravdepodobnost jednoho jevu, pokud nastane nejaky dalsi jev. Chceme tedy vedet, podminenou pravdepodobnost jednohu jevu, pokud nastane jev dalsi. Nejcasteji se k vyjadreni tohoto stavu pouziva **Bayesuv teorem**. Pokud bychom meli jev A a jev B, pak pravdepodobnost jevu A, pokud nastal jev B je:
+
+$P(A|B) = \frac{P(B|A)P(A)}{P(B)}$
+
+$P(A)$  je nekdy nazyvana **apriorni pravdepodobnost** a znaci cetnost (pravdepodobnost) jevu A (bez ohledu na jakekoli dalsi jevy). $P(A|B)$ je nekdy nazyvana **posteriorni pravdepodobnost** (aktualizovana pravdepodobnost jevu A, pokud vime, ze nastal jev B).
+
+Vzorec Bayesova teoremu/Bayesovy vety je docela neintuitivni. Pojdme si ukazat vyuziti Bayesova teoremu na konkretnim praktickem prikladu.
+
+
+PRIKLAD: Filtr na spam je navrzen tak, ze prohledava fraze, ktere se casto v spamech vyskutuji. Zhruba 90% vsech prichozich emailu jsou spamy. V 10% spamovych emailu je pouzita fraze "vyhrali jste", zatimco tato fraze je pouzita pouze v 1% normalnich emailu. Prave dorazil novy email, ktery obsahuje frazi "vyhrali jste". Jaka je pravdepodobnost, ze se jedna o spam?
+Zapisme si zadani nasi ulohy. Na levou stranu rovnice zapiseme, o co se zajimame: pravdepodobnost, ze prichozi email je spam, pokud obsahuje frazi "Vyhrali jste" ($P(spam|fraze)$). Na pravou stranu podle Bayesova teoremu dosadime za pismena A a B prislusne jevy. Vysledny zapis nasi ulohy vypada nasledovne:
+$P(spam|fraze) = \frac{P(fraze|spam)P(spam)}{P(fraze|spam)P(spam) + P(fraze|normalni)P(normalni)}$
+```{r}
+# P(spam) zname ze zadani prikladu (90% vsech prichozich emailu jsou spamy)
+p_spam <- 0.9
+# P(normalni) dopocitame z pravidla o doplnku: P(spam) + P(normalni) = 1
+p_normal <- 1 - p_spam
+# P(fraze|spam) zname ze zadani prikladu (V 10% spamovych emailu je pouzita fraze "vyhrali jste")
+p_fraze_spam <- 0.1
+# P(fraze|normalni) zname ze zadani prikladu (fraze "vyhrali jste" je pouzita pouze v 1% normalnich emailu)
+p_fraze_normal <- 0.01
+
+### Jednotlive hodnoty dosadime do Bayesova teoremu. Pravdepodobnost, ze prichozi email obsahujici frazi "vyhrali jste" je spamem, je velmi vysoka (0.989).
+p_fraze_spam*p_spam / (p_fraze_spam*p_spam + p_fraze_normal*p_normal)
+```
+
+Podivejme se na vyuziti Bayesova teoremu na slozitejsim prikladu:
+
+Mame 5 minci: tri spravedlive a dve cinkle. Na prvni cinkle minci pada orel s pravdepodobnosti 0.7. Na druhe cinkle minci pada orel s pravdepodobnosti 0.9. Nahodne vylosujeme jednu z minci a ctyrikrat ji hodime. Padne trikrat orel. Pokud zvazime tuto skutecnost, jaka je pravdepodobnost, ze jsme vybrali spravedlivou minci?
+Zapisme si zadani nasi ulohy:
+$P(spravedliva|3xorel) = \frac{P(3xorel|spravedliva)P(spravedliva) }{P(3xorel|spravedliva)P(spravedliva) + P(3xorel|cinkla1)P(cinkla1)+P(3xorel|cinkla2)P(cinkla2)}$
+```{r}
+# P(spravedliva) vypocitame ze zadani prikladu (tri mince z peti jsou spravedlive)
+p_spravedliva <- 3/5
+# P(cinkla1) vypocitame ze zadani prikladu (jedna mince z peti je cinkla takovym zpusobem, ze orel pada s pravdepodobnosti 0.7)
+p_cinkla1 <- 1/5
+# P(cinkla2) vypocitame ze zadani prikladu (jedna mince z peti je cinkla takovym zpusobem, ze orel pada s pravdepodobnosti 0.9)
+p_cinkla2 <- 1/5
+# P(3xorel|spravedliva) vypocitame s vyuzitim funkce dbinom. Zajimame se o to, jaka je pravdepodobnost, ze pri 4 hodech spravedlivou minci padne trikrat orel.
+p_3orel_spravedliva <- dbinom(x = 3, size = 4, prob = 0.5)
+# P(3xorel|cinkla1) vypocitame s vyuzitim funkce dbinom. Zajimame se o to, jaka je pravdepodobnost, ze pri 4 hodech prvni cinklou minci padne trikrat orel.
+p_3orel_cinkla1 <- dbinom(x = 3, size = 4, prob = 0.7)
+# P(3xorel|cinkla2) vypocitame s vyuzitim funkce dbinom. Zajimame se o to, jaka je pravdepodobnost, ze pri 4 hodech druhou cinklou minci padne trikrat orel.
+p_3orel_cinkla2 <- dbinom(x = 3, size = 4, prob = 0.9)
+
+# Ted postupne vypocitame citatel a jmenovatel Bayesova teoremu pro nas priklad
+citatel <- p_3orel_spravedliva*p_spravedliva
+jmenovatel <- p_3orel_spravedliva*p_spravedliva + p_3orel_cinkla1*p_cinkla1 + p_3orel_cinkla2*p_cinkla2
+
+# Nakonec vypocitame pozadovanou podminenou pravdepodobnost ze zadani prikladu (tzn. pravdepodobnost, ze jsme vybrali/hazeli spravedlivou minci, pokud padnul pri ctyrech hodech trikrat orel)
+citatel / jmenovatel
+```
+
+
+\  
+Jako posledni si ukazeme slavny priklad z teorie pravdepodobnosti, ktery je ukazkou aplikovani podminene pravdepodobnosti. Jedna se o tzv. **Monty Hallovu uloha** (anglicky *Monty Hall problem*).
+
+Uloha vychazi z americke televizni show *Let's Make a Deal*, kterou uvadel moderator *Monty Hall*. Monty Hall ma v televiznim studiu tri dvere, pricemz umisti za dvoje dvere dva kozly a za treti dvere umisti auto. Soutezici si ma vybrat jedny ze tri zavrenych dveri. Monty Hall vi, za kterymi dvermi se nachazi auto. Potom jak soutezici vybere jedny dvere, tak mu Monty Hall otevre jedny ze dvou zbyvajicich dveri. Odhalene dvere maji vzdy za sebou kozla – Monty Hall nikdy neodhali auto! Pokud soutezici tipne dvere skryvajici auto, Monty Hall nahodne vybere dvere skryvajici kozla. Monty nasledne nabidne soutezicimu moznost zmenit svoji puvodni volbu. Pokud je cilem souteziciho vyhrat auto, mel by soutezici zmenit dvere?
+
+![](/home/schubertj/cuni/mal/cviceni_9/imgs/monty_hall.gif)
+
+Analyticky lze problem resit hned nekolika zpusoby (podminenou pravdepodobnosti, s vyuzitim stromoveho diagramu, Bayesovou vetou). Pojdme zduvodnit dominantni strategii, kterou by mel soutezici zvolit s vyuzitim podminene pravdepodobnosti.
+Nejdrive ocislujeme jednotlive dvere (1, 2, 3). Pravdepodobnost, ze se auto nachazi za dvermi cislo 1 je 1/3. Pravdepodobnost, ze se auto nachazi za dvermi cislo 2 je take 1/3. Stejne tak pravdepodobnost, ze se auto nachazi za dvermi cislo 3 je 1/3. Pro zjednoduseni predpokladejme, ze soutezici nejdrive vybere dvere cislo 1. Monty Hall otevre jedny z dveri cislo 2 nebo cilo 3 (podle toho, ktere z techto dveri skryvaji kozla - auto Monty Hall nikdy neodhaluje!). Cilem souteziciho je vyhrat auto. Soutezici nevi, za kterymi dvermi se auto skryva. Pri vypoctu pravdepodobnosti vyhry auta by mel soutezici podminovat pravdepodobnost, ze se auto skryva za jednotlivymi  dvermi (tato pravdepodobnost je stejna pro vsechny dvere a je 1/3). Podminku, ze se auto nachazi za i-tymi dvermi zapisujeme $auto_i$). Podle zakona o celkove pravdepodobnosti muzeme pravdepodobnost vyhry auta rozepsat nasledovne:
+$P(vyhra)=P(vyhra|auto_1).\frac{1}{3}+P(vyhra|auto_2).\frac{1}{3}+P(vyhra|auto_3).\frac{1}{3}$
+Pravdepodobnost vyhry, kdyz soutezici zustava u sveho puvodniho tipu s prvnimi dvermi je 1/3:
+$P(vyhra)=1.\frac{1}{3}+0.\frac{1}{3}+0.\frac{1}{3}=\frac{1}{3}$
+Pravdepodobnost vyhry, kdyz soutezici zmeni svuj puvodni tip je 2/3:
+$P(vyhra)=0.\frac{1}{3}+1.\frac{1}{3}+1.\frac{1}{3}=\frac{2}{3}$
+Moznosti zmeny puvodniho tipu Monty Hall v zasade nabizi soutezicimu moznost formulovat dva tipy soucasne. Tato moznost je vyhodnejsi nez formulovani pouze jednoho tipu (to znamena situace, kdyz soutezici zustava pri svem puvodnim tipu).
+
+Zkusme se jeste nad problemem zamyslet z hlediska frekcencniho pristupu k pravdepodobnosti. Apriorni pravdepodobnost spravneho tipnuti auta za dvermi je 1/3. Predstavme si, ze se ucastnime show *Let's Make a Deal* 1000krat a vzdy drzime strategii sveho puvodniho tipu. Na zaklade uvedene apriorni pravdepodobnosti lze pri hrani hry strategii puvodniho tipu ocekavat vyhru auta priblizne 333krat. To znamena, ze puvodni typ by vedl k vyhre pouze v tretine ucasti v show *Let's Make a Deal*. Ve zbyvajicich priblizne 667 pripadech by soutezici vyhral, pokud by zmenil svuj puvodni tip.
+
+Pojdme ted naprogramovat novou funkci `monty`. Tato funkce bude simulovat hrani hry v televizni show. Funkce bude mit dva argumenty:
+* `tip` = dvere, ktere si soutezici vybere. Tento argument muze nabyvat numericke hodnoty 1, 2 nebo 3 (vzdy pouze jednu z nich)
+* `zmena_tipu` = logicka hodnota (`TRUE`/`FALSE`) indikujici, jestli soutezici chce zmenit puvodni tip
+```{r}
+monty <- function(tip, zmena_tipu){
+  # mame 3 dvere
+  dvere <- c(1,2,3)
+  # nahodne urcime, kde je auto
+  dvere_auto <- sample(dvere, size = 1)
+  
+  # nahodne soutezicimu ukazeme dvere, kde neni auto a neni to nas tip (z arumentu funkce)
+  otevrene_dvere <- dvere[!dvere %in% c(tip, dvere_auto)]
+  # pokud tip = dvere_auto tak musime oteverene_dvere vybrat nahodne z dvou moznosti
+  if(length(otevrene_dvere) == 2) {
+    otevrene_dvere <- sample(otevrene_dvere, size = 1)
+  }
+  
+  # zbyly nam tyto dvere
+  zbyle_dvere <- dvere[dvere != otevrene_dvere]
+  
+  # pokud menime tip...
+  if(zmena_tipu) {
+    # ...tak chceme ty druhe zbyvajici dvere...
+    tip <- zbyle_dvere[zbyle_dvere != tip]
+  } else {
+    # ...jinak nechame nas puvodni tip
+    tip <- tip
+  }
+  
+  # pokud nas tip po zmene nebo nezmene je roven dverim, kde je auto...
+  if(dvere_auto == tip) {
+    # ...tak vyhravame...
+    return("vyhra")
+  } else {
+    # ...jinak prohravame
+    return("prohra")
+  }
+}
+```
+
+Rychle predvedme, jak nase nova funkce funguje. Ve dvou nasledujich volanich funkce `monty` vybirame vzdy druhe dvere, pricemz pri druhem volani funkce menime nas puvodni tip.
+```{r}
+monty(tip = 2, zmena_tipu = FALSE)
+monty(tip = 2, zmena_tipu = TRUE)
+```
+
+Simulace strategie, ze po otevreni dveri skryvajicich kozla chceme zmenit nas puvodni tip. Cilem teto simulace je ukazat, ze zmena puvodnihu tipu je pro nas skutecne vyhodna (to znamena, ze povede k vyhre v priblizne 2/3 ze 100000 simulovanych hrani hry).
+```{r}
+# simulace: zmena puvodniho tipu (zmena_tipu = TRUE)
+N <- 100000
+
+vysledek <- rep(NA, N)
+nas_tip <- sample(c(1,2,3), size = N, replace = TRUE)
+for(n in 1:N) {
+  vysledek[n] <- monty(tip = nas_tip[n], zmena_tipu = TRUE)
+}
+table(vysledek) / N
+```
+
+
+A pro kontrolu simulace strategie, ze zustavame pri puvodnim tipu. Cilem teto simulace je ukazat, ze trvani na puvodnim tipu je pro nas nevyhodne (protoze povede k vyhre pouze v 1/3 ze 100000 simulovanych hrani hry).
+```{r}
+# simulace: puvodni tip (zmena_tipu = FALSE)
+N <- 100000
+
+vysledek <- rep(NA, N)
+nas_tip <- sample(c(1,2,3), size = N, replace = TRUE)
+for(n in 1:N) {
+  vysledek[n] <- monty(tip = nas_tip[n], zmena_tipu = FALSE)
+}
+table(vysledek) / N
+```

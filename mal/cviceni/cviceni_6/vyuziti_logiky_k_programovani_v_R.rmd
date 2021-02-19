@@ -1,0 +1,137 @@
+---
+title: "Vyuziti logiky k programovani v R"
+author: Ivan Petrusek, Jan Schubert
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Hlavnim cilem tohoto cviceni je ukazat, jak v R-ku **programovat vlastni funkce**. Krome toho predstavime **objekty dvou novych trid**: `formula` a `list`.
+
+
+Na poslednim cviceni jsme si ukazovali, jak muzeme pomoci pravidel vyrokove logiky filtrovat vektor a datovou matici. Ukazali jsme si, jak vypocitat prumer pro dve podskupiny dat. Tato operace je tak casta, ze pro ni v R existuji specificke funkce a dokonce ruzne balicky. Nejcastejsimi balicky, ktere se k uprave dat a pocitacni souhrnu pouzivaji, jsou `dplyr` a `data.table`. My si ukazeme, jak delat tyto operace pomoci `base` R, tedy bez instalace dalsich balicku.
+
+
+Nejdrive si ale nacteme data, na kterych budeme vypocty provadet. Budeme opet pouzivat data ze Spotify, ktera nacteme pomoci znameho prikazu `read.csv`.
+```{r}
+spotify <- read.csv("https://raw.githubusercontent.com/schubertjan/cviceni_5/master/spotify_data.csv", stringsAsFactors = FALSE)
+```
+
+K agregovani dat za ruzne skupiny muzeme pouzit funkci `aggregate`. Podivejme se na jeji napovedu `?aggregate`. Jak vidime, existuje mnoho zpusobu, jak tuto funkci pouzit. My si nejdrive ukazeme pouziti pres tridu `formula` (vzorec). `Formula` je trida (`class`), pomoci ktere muzeme specifikovat vztah mezi promennymi a pouzit ho jako argument v jinych funkcich. Zejmena dulezite jsou `formula` pri pocitani statistickych modelu. Jako prvni ve `formula` (vzorci) specifikujeme promennou, kterou chceme vysvetlit/zkoumat. Za touto promennou (casto nazyvanou zavisle promenna) piseme znak vlnovka/tilda `~`, ktery odpovida znamenku rovna se v matematickych formulach. Za znamenkem `~` pote vypiseme ostatni promenne, ktere mohou nasi zavisle promennou ovlivnovat (casto se jim rika nezavisle promenne). Matematicky vzorec $y = x$ by se tedy napsal v tride `formula` jako `y ~ x`. Zkusme tedy nejdrive vytvorit objekt tridy `formula`, kde zavisle promennou bude predstavovat `valence` a nezavisle promennou `playlist_genre`.
+```{r}
+vzorec <- valence ~ playlist_genre
+class(vzorec)
+```
+
+Zkusme nyni vypocitat prumer promenne `valance` za jednotlive zanry (`playlist_genre`). Chceme tedy zkoumat vliv promenne zanr na promennou valance. Tedy, zavisle promennou je valance a nezavisle promennou je zanr. Tento vztah muzeme ve funkci `aggregate` specifikovat dvema zpusoby:
+```{r}
+# A) Jako prvni argument funkce aggregate pouzijeme vyse vytvoreny objekt tridy formula
+aggregate(vzorec, data = spotify, FUN = mean)
+# B) Jako prvni argument funkce aggregate formuli vypiseme
+aggregate(valence ~ playlist_genre, data = spotify, FUN = mean)
+```
+
+
+
+Stejne tak muzeme pouzit jine funkce k agregaci dat. Pokud nas napriklad bude zajimat, kolik dni by trvalo poslechnout vsechny pisne pro kazdy zanr, muzeme to vypocitat takto:
+```{r}
+# pouzijeme funkci sum misto funkce mean a vysledek ulozime do objektu trvani
+trvani <- aggregate(duration_ms ~ playlist_genre, data = spotify, FUN = sum)
+class(trvani)
+print(trvani)
+```
+
+Delka pisne je v nasich datech Spotify merena pomoci milisekund. Musime tedy tuto hodnotu vydelit 1000, abychom ziskali sekundy, 60000 (1000 * 60) abychom ziskali minuty, 3600000 (1000 * 60 * 60) abychom ziskali hodiny a 86400000 (1000 * 60 * 60 * 24), abychom ziskali dny. Jak jsme videli, vznikly objekt je `data.frame`, muzeme na nem tedy provadet vsechny matematicke operace, ktere jsme si predstavovali v predchozich cvicenich. Vydelme nyni celkovou dobu trvani cislem 86400000, abychom prevedli milisekundy na dny. Vysledek ulozime do nove promenne `duration_dny`.
+```{r}
+trvani$duration_dny <- trvani$duration_ms / 86400000
+print(trvani)
+```
+Nejdele by nam trvalo poslechnout vsechny pisne v playlistech edm (electronic dance music), a to vice nez dva tydny.
+
+
+Jak jsme zminili, funkci `aggregate` muzeme pouzivat ruznymi zpusoby. My jsme si predstavili pouziti pomoci vzorce `formula`. Dalsim pouzitim je pomoci listu `list`. Toto je posledni dulezita trida objektu v R, kterou si predstavime. List je univerzalni objekt, do ktereho muzeme ulozit jakykoliv jiny objekt. Muzeme do jednoho listu ulozit vektory (`vector`), matice (`matrix`) a datove matice (`data.frame`). Protoze jsou listy takto univerzalni, pouzivaji se casto k ukladani vysledku. Listy muzete vytvorit pomoci funkce `list`. Pojdme nyni vytvorit list, ktery bude obsahovat 3 objekty. Prvni objekt bude datova matice `spotify`, dalsim bude url adresa, ze ktere jsme data stahli a poslednim objektem bude datum, kdy jsme data stahli. Prvni objekt listu nazveme `data`, druhy `url` a treti `datum_stazeni`. List ulozime do objektu `spotify_list`.
+```{r}
+spotify_list <- list(data = spotify, 
+                     url = "https://raw.githubusercontent.com/schubertjan/cviceni_5/master/spotify_data.csv",
+                     datum_stazeni = "10. listopadu 2020")
+
+class(spotify_list)
+```
+
+Jednotlive objekty v ramci listu muzeme filtrovat podobne jako hodnoty vektoru. Jedinym rozdilem je, ze pouzijeme `[[]]` misto `[]`. Vyfiltrujeme nyni treti objekt podle jeho cisla a druhy objekt podle jeho nazvu (muzeme take pouzit operator `$`, ktery zname z datovych matic).
+```{r}
+spotify_list[[3]]
+spotify_list[["url"]]
+spotify_list$url
+```
+
+Vratme se nyni k funkci `aggregate`. Pokud chceme tuto funkci pouzit pomoci listu, je prvnim argumentem `x`, kde specifikujeme objekt, na kterem chceme aggregace provadet (zavisle promenna). Dalsim argumentem `by` rekneme R, podle jakych hodnot ma aggregaci provadet (nezavisle promenna). Pozor tato promenna musi byt specofikovana jako `list`. Pouziti argumentu `FUN` zustava stejne. Ukazme si nyni, jako bychom provedli stejny vypocet (prumer valance za zanry) pomoci tohoto zpusobu.
+```{r}
+aggregate(x = spotify$valence, 
+          by = list(spotify$playlist_genre), 
+          FUN = mean)
+```
+\ 
+
+
+Doposud jsme pouzivali pouze funkce, ktere jsou v R dostupne. Tyto funkce pokryji velkou cast toho, co chceme udelat. Nekdy ale chceme provest operace, ktere tyto funkce nepocitaji nebo je provadeji jinak, nez potrebujeme. Velkou vyhodou programovani je, ze si muzeme vytvorit funkce vlastni a ty pouzivat spolu s existujicimi funkcemi. Novou funkci definujeme pomoci prikazu `function`. Ukazme si, jak bychom napsali velmi jednoduchou funkci, ktera vytiskne text *"Statistika nuda je, ma vsak cenne udaje"*.
+```{r}
+# vsechny funkce musime pridat do objektu, abychom je mohli dale pouzivat
+# stejne jako pri pouziti if nebo for, definujeme obsah funkce ve slozenych zavorkach {} 
+moje_prvni_funkce <- function() {
+  # nakonec funckce vzdy spedifikujeme, co chceme, aby funkce vratila
+  return("Statistika nuda je, ma vsak cenne udaje")
+}
+```
+
+Zkusme si nyni nasi funcki spustit. Jako vsechny funkce, musime nejdrive napsat jeji nazev a zavorky `()`. Protoze jsme nespecifikovali zadne argumenty, nemusime do zavorek nic psat.
+```{r}
+moje_prvni_funkce()
+```
+
+
+Pojdme si ukazat, jak vytvorit nejakou sikovnejsi funckci. Rekneme, ze nas zajimaji nasledujici popisne statistiky: *minimum*, *maximum* a *prumer* za nejakou promennou. Mohli bychom pro kazdou promennou vypsat funkce `min`, `max` a `mean`, ale pokud bychom tuto operaci chteli opakovat, hodne bychom se upsali. Muzeme si proto vytvorit funkci, ktera bude tuto operaci provadet. Nazveme tuto novou funkci `popisne_statistiky`. Opet pouzijeme prikaz `function` k vytvoreni nove funkce. Nyni musime specifikovat argument funkce, ktery bude predstavovat promennou, na ktere chceme popisne statisky pocitat. Nazveme tento argument napriklad `X`. Argumenty funkce pridame do jednoduchych zavorek prikazu `function`. V pripade, ze mame argumentu vice, argumenty oddelime carkou `,`.
+```{r}
+popisne_statistiky <- function(X){
+  # vytvorime vektor popisnych statistik
+  vektor_popisnych_statistik <- c(min(X, na.rm = TRUE), max(X, na.rm = TRUE), mean(X, na.rm = TRUE))
+  # nazveme jednotlive popisne statistiky podle toho, co vyjadruji
+  names(vektor_popisnych_statistik) <- c("Minimalni_hodnota", 
+                                         "Maximalni_hodnota",
+                                         "Prumerna_hodnota")
+  # nakonec rekneme R, ze chceme, aby funkce vytiskla nas vektor popisnych statistik
+  return(vektor_popisnych_statistik)
+}
+```
+
+Pojdme vyzkouset, jestli nase funkce funguje. Vytiskneme minimalni, maximalni a prumernou hodnotu promenne valence. 
+```{r}
+popisne_statistiky(spotify$valence)
+```
+
+
+Rekneme, ze nas zajimaji tyto popisne statistiky (*minimum*, *maximum* a *prumer*), ale chceme je vypocitat za jednotlive skupiny. Muzeme si k tomu vytvorit vlastni funkci `popisne_statistiky_skupiny`. V tomto pripade uz bude mit prikaz `function` dva argumenty (`X` a `Y`)
+```{r}
+# funkci ulozime do objektu popisne_statistiky_skupiny, abychom ji mohli dale pouzivat
+popisne_statistiky_skupiny <- function(X, Y){
+  # pouzijeme funkci aggregate, a jako x a by specifikujeme argumenty nasi nove funkce (tzn. X a Y).
+  # jako FUN pouzijeme nasi funkci popisne_statistiky
+  vysledek <- aggregate(X,
+                        by = list(Y),
+                        FUN = popisne_statistiky)
+  # vratime vysledek
+  return(vysledek)
+}
+```
+
+Nasi nove vytorenou funkci `popisne_statistiky_skupiny` pouzijeme ke zkoumani promenne valence v ramci jednotlivych zanru:
+```{r}
+popisne_statistiky_skupiny(spotify$valence, spotify$playlist_genre)
+```
+
+Stejny postup muzeme aplikovat u jakekoli dalsi numericke promenne, napriklad danceability. 
+```{r}
+popisne_statistiky_skupiny(spotify$danceability, spotify$playlist_genre)
+```

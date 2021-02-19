@@ -1,0 +1,5 @@
+mal/data/*
+mal/swirl/*
+mal/test/*
+mal/ukoly/*
+mal/*.Rhistory

@@ -1,0 +1,192 @@
+---
+title: "Funkce a grafika v R"
+author: "Ivan Petrusek, Jan Schubert"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
+```
+
+
+Dnes se zamerime na zkoumani vztahu mezi dvojicemi promennych v datech `spotify`. Pozornost pritom budeme venovat **linearni funkci** a **odmocninne funkci** (pristi tyden budeme probirat *kvadratickou*, *exponencialni* a *logaritmickou* funkci). Abychom si dokazali prubeh funkce lepe predstavit, budeme si je kreslit v grafech. Tim si zaroven ukazeme, jak vytvaret grafy v R. R (a dalsi programovaci jazyky) maji tu vyhodu, ze si muzete grafy plne prizpusobit. Mame (skoro) absolutni kontrolu nad tim, jak bude nas graf vypadat. My si budeme ukazovat graficke moznosti zakladniho grafickeho balicku R (`graphics`). Existuje cela rada dalsich balicku, ktere jsou zamerene na grafiku. Tim nejpouzivanejsim je `ggplot2`.
+
+
+Nejdrive si nacteme data `spotify`, na kterych si budeme funkce a grafiku ukazovat.
+```{r}
+spotify <- read.csv("https://raw.githubusercontent.com/schubertjan/cviceni_5/master/spotify_data.csv")
+```
+
+
+Funkce muzeme pouzit k vystizeni vztahu mezi dvema promennymi. Pojdme se podivat na vztah mezi promennymi `energy` a `loudness`. Ke grafickemu zkoumani vztahu mezi dvema promennymi slouzi **bodovy graf** (anglicky *scatter plot*). Kazdy bod na tomto grafu ukazuje hodnoty na ose x a ose y jednoho pozorovani (jednoho radku datove matice,nebo jedne pisnicky). V pripade datoveho souboru `spotify` bude kazdy bod v grafu zobrazovat jednu pisnicku. V R muzeme scatter plot vytvorit pomoci prikazu `plot`. Pojdme se podivat na jeho napovedu `?plot`.
+
+```{r}
+plot(spotify$energy, spotify$loudness)
+```
+
+Prvni veci, kterou na grafu upravime jsou nazev grafu (argument `main`) a popisky na horizontalni a vertikalni ose (argumenty `xlab` a `ylab`). Tyto popisky jsou dulezite, aby konzument grafu vedel, na co se diva. Nazev grafu vetsinou vystihuje to, co chceme v grafu ukazat. Nazvy x a y osy potom to, jakou promennou dana osa zobrazuje.
+```{r}
+# labels
+plot(x = spotify$energy, 
+     y = spotify$loudness, 
+     main = "Vztah mezi energy a loudness pisnicek na Spotify", 
+     xlab = "Energy", 
+     ylab = "Loudness")
+```
+
+Dalsi veci, kterou si ukazeme je to, jak zmenit barvu bodu v grafu (nazvy barev muzeme pouzit take k zmene barev car, popisku a dalsich apektu grafu - o tom vice pozdeji). R ma sirokou paletu barev. Tyto jsou ty nejcasteji pouzivane (barvy zacinajici pismeny "a" az "d"):
+
+
+![](https://www.r-graph-gallery.com/42-colors-names_files/figure-html/thecode-1.png)
+
+Vsechny barvy naleznete v [tomto dokumentu](http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf).
+
+Zkusme nyni zmenit barvu bodu na modrou (argument `col`).
+```{r}
+plot(x = spotify$energy, 
+     y = spotify$loudness, 
+     main = "Vztah mezi energy a loudness pisnicek na Spotify", 
+     xlab = "Energy", 
+     ylab = "Loudness", 
+     col = "blue")
+```
+
+Toto neni ten nejkrasnejsi graf. Zkuste si najit v palete barev takovou barvu, kterou chceme pouzit (v tomto prikladu pouzivame barvu "coral2"). 
+```{r}
+plot(x = spotify$energy, 
+     y = spotify$loudness, 
+     main = "Vztah mezi energy a loudness pisnicek na Spotify", 
+     xlab = "Energy", 
+     ylab = "Loudness", 
+     col = "coral2")
+```
+
+Dalsi vec, kterou si ukazeme je, jak zmenit typ bodu v grafu. Pojdme si vytvorit graf, ktery bude mit body vyplnene. To znamena, ze misto kruznic budeme mit v grafu kruhy. V zakladni verzi R nabizi 25 typu bodu/znacek. Typ bodu, ktery pozadujeme, urcujeme s definovanim argumentu `pch`. Pokud napriklad pozadujeme mensi plny kruh, tak ma argument podobu: `pch = 20`. Dalsi moznosti bodu a odpovidajici ciselna oznaceni zobrazuje nasledujici schema:
+
+![](https://cpb-us-e1.wpmucdn.com/sites.ucsc.edu/dist/d/276/files/2015/10/symbols.jpg)
+
+
+Pokud mame v grafu velky pocet pozorovani (bodu), je uzitecne zvysit pruhlednost techto bodu tak, aby mista, kde je hodne pozorovani byla tmavejsi. K tomu slouzi funkce `adjustcolor`. Tuto funkci pouzijeme v ramci argumentu `col`. Ruznou pruhlednost bodu pritom nastavujeme s vyuzitim argumentu `alpha.f` (tento argument muze nabyvat hodnoty z intervalu [0, 1] - cim mensi hodnota argumentu `alpha.f`, tim vetsi pruhlednost bodu).
+```{r}
+plot(x = spotify$energy, 
+     y = spotify$loudness, 
+     main = "Vztah mezi energy a loudness pisnicek na Spotify", 
+     xlab = "Energy", 
+     ylab = "Loudness", 
+     col = adjustcolor("black", alpha.f = 0.1),
+     pch = 20)
+```
+
+Ted se podivame na to, jak muzeme pridavat do nasich grafu krivky matematickych funkci. Matematickymi funkcemi se snazime co nejverneji popsat vztah mezi promennymi v bodovem grafu. Nejdrive si ukazeme, jak pridat do naseho grafu linearni funkci (to znamena, ze nas bodovy graf indikuje, ze mezi promennymi je linearni vztah). Linearni funkce ma dva parametry. Jeden parametr urcuje, kde primka protina osu y (tento parameter nazyvame **konstanta** a v matematice se oznacuje jako $b$, ve statistice jako $a$). Druhym parametrem je sklon primky (tento parameter nazyvame **smernice** a v matematice se oznacuje jako $a$, ve statistice jako $b$). Sklon primky muzeme vypocitat s vyuzitim nasledujiciho schematu:
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Wiki_slope_in_2d.svg/440px-Wiki_slope_in_2d.svg.png)
+
+V R slouzi k nakresleni primky funkce `abline`. Pojdme se podivat na jeji napovedu `?abline`.
+
+Nejdrive zkusme vypocitat sklon primky pomoci vzorce uvedeneho nahore. Podle vzorecku potrebujeme vypocitat jaky rozdil mezi mistem $x_2$ a $x_1$ vygeneruje rozdil mezi $y_2$ a $y_1$. Urcime si napriklad jaky rozdil na ose $y$ by vznikl kdybychom si vzali rozdil mezi $x_2 = 0.8$ a $x_1 = 0$. Podle oka bychom ocekavali, ze hodnota $y_1$ v bode $x_1$ by byla $y_1 = -20$. Stejne tak v bode $x_2$ je hodnota $y_2 = -10$. Pokud dosadime tyto hodnoty do vzorce, potom $b = \frac{-10 - (-20)}{0.8 - 0}$ (po upraveni zlomku je tedy nas odhad sklonu primky 12.5). To znamena, ze pokud se zvysi hodnota promenne loudness o jednotku (v tomto pripade z minima 0 na maximum 1), tak ocekavame narust promenne loudness o 12.5. Parametr $a$ (konstantu) muzeme odhadnout tak, ze si primku prodlouzite az do bodu, kde bude pretinat osu $y$. My jsme konstantu pro nas priklad odhadli hodnotu konstanty -15. 
+```{r}
+plot(x = spotify$energy, 
+     y = spotify$loudness, 
+     main = "Vztah mezi energy a loudness pisnicek na Spotify", 
+     xlab = "Energy", 
+     ylab = "Loudness", 
+     col = adjustcolor("black", alpha.f = 0.1),
+     pch = 20)
+
+d_x <- 0.8 - 0
+d_y <- -10 - (-20)
+abline(a = -15, b = d_y / d_x, col = "red")
+```
+
+
+Pocitat sklon primky, pokud mame hodne bodu je obtizne. Pro tento účel existuji v R specialni funkce. Funkce `lm` vypocita linearni regresni model, ktery protne shlukem bodu krivku, ktera minimalizuje vzdalenost bodu od primky. Prave primka odhadnuta touto metodou ma nejlepsi vlastnosti (i kdyz nas odhad parametru primky byl relativne kvalitni, od nejlepsi mozne primky se prirozene lisi).
+```{r}
+plot(x = spotify$energy, 
+     y = spotify$loudness, 
+     main = "Vztah mezi energy a loudness pisnicek na Spotify", 
+     xlab = "Energy", 
+     ylab = "Loudness", 
+     col = adjustcolor("black", alpha.f = 0.1),
+     pch = 20)
+
+d_x <- 0.8 - 0
+d_y <- -10 - (-20)
+# Nas puvodni odhad primky (na grafu zobrazen jako cervena prerusovana cara)
+abline(a = -15, b = d_y / d_x, col = "red", lty = 2)
+# Primka odhadnuta prostrednictvim linearniho regresniho modelu (modra tlusta cara)
+abline(lm(spotify$loudness ~ spotify$energy), col = "blue", lwd = 3)
+```
+
+Nasledujici napoveda zobrazuje ruzne typy car (`lty`), ktere muzete specifikovat v grafu. Pokud bychom treba chteli "teckovanou" caru, tak bychom argument lty specifikovali `lty = 3` nebo `lty = "dotted"`. 
+![](http://kktg.net/sgr/wp-content/uploads/2014/02/fig-15-7-line-types.png)
+
+
+
+Pojdme se ted podivat na vztah mezi promennymi `liveness` a `energy`. Nejdrive zobrazime bodovy graf hodnot obou promennych.
+```{r}
+plot(x = spotify$liveness, 
+     y = spotify$energy, 
+     main = "Vztah mezi energy a loudness pisnicek na Spotify", 
+     xlab = "Liveness", 
+     ylab = "Energy", 
+     col = adjustcolor("black", alpha.f = 0.1),
+     pch = 20)
+```
+
+Ne vsechny (dokonce ani ne vetsina vztahu) vztahy v realnem svete se daji popsat pomoci primky. Ani tento vztah by se primkou nedal dobre vyjadrit, protoze vetsina pisnicek se nachazi mezi hodnotami `liveness` 0.0 a 0.2 a mezi hodnotami `energy` 0.4 a 1. Takovy vztah bychom se mohli pokusit vyjadrit pomoci funkce odmocniny.  
+Ze stredni skoly vime, ze v oboru realnych cisel **muzeme pocitat odmocninu pouze z kladneho cisla** (jinymi slovy, pod odmocninou musi byt pouze kladne cislo). Pokud bychom napriklad chteli vypocitat druhou odmocninu z cisla -4, tak nam R spravne vrati hodnotu `NaN` (not a number). Ze stredoskolske matematiky dale vime, ze odmocniny muzeme zapisovat jako mocniny s racionalnim exponentem (to znamena, ze v exponentu mame zlomek): $\sqrt[n]{a}=a^\frac{1}{n}$. Prave tento matematicky vztah vyuzijeme pri zadavani odmocniny v R. Napriklad treti odmocninu zapiseme matematicky $\sqrt[3]{a}=a^\frac{1}{3}$, cemuz v R odpovida kod `a^(1/3)`. Dale napriklad osmou odmocninu zapiseme matematicky $\sqrt[8]{a}=a^\frac{1}{8}$, cemuz v R odpovida kod `a^(1/8)`. Jako odmocnenec `a` budeme v nasem pripade pouzivat promennou `x` (to znamena promennou "Liveness", ktera je zobrazena na horizontalni ose).
+
+Pojdme ted zkusit postupne shlukem bodu protnout ruzne krivky odmocnin. V R muzeme jakoukoliv funkci nakreslit pomoci `curve`. Pojdme se podivat na jeji napovedu `?curve`. Funkci `curve` budeme hodne vyuzivat take na pristim cviceni, kdy budeme do grafu zakreslovat kvadraticke, exponencialni a logaritmicke funkce.
+
+```{r}
+plot(x = spotify$liveness, 
+     y = spotify$energy, 
+     main = "Vztah mezi energy a loudness pisnicek na Spotify", 
+     xlab = "Liveness", 
+     ylab = "Energy", 
+     col = adjustcolor("black", alpha.f = 0.1),
+     pch = 20)
+# pridani cervene krivky, ktera odpovida druhe odmocnice
+curve(expr = sqrt(x), from = 0.0001, to = 1, add = TRUE, lwd = 3, col = "red")
+# pridani modre krivky, ktera odpovida treti odmocnice
+curve(expr = x^(1/3), from = 0.0001, to = 1, add = TRUE, lwd = 3, col = "blue")
+# pridani zelene krivky, ktera odpovida pate odmocnice
+curve(expr = x^(1/5), from = 0.0001, to = 1, add = TRUE, lwd = 3, col = "green")
+# pridani zlute krivky, ktera odpovida osme odmocnice
+curve(expr = x^(1/8), from = 0.0001, to = 1, add = TRUE, lwd = 3, col = "yellow")
+
+# Legendu, ktera vysvetluje, co zastupuji jednotlive cary, do grafu doplnime s vyuzitim funkce "legend"
+legend("bottomright", 
+       legend = c("druha odmocnina", 
+                  "treti odmocnina", 
+                  "pata odmocnina", 
+                  "osma odmocnina"), 
+       col = c("red", 
+               "blue",
+               "green",
+               "yellow"), 
+       lwd = rep(3, 4))
+```
+
+Ktera odmocnina (racionalni exponent) nejlepe vystihuje vztah mezi dvema analyzovanymi promennymi ze Spotify? Na tuto otazku dava odpoved nasledujici kod. Cilem kodu je tedy odhadnout exponent, ktery  minimalizuje vzdalenost bodu od krivky prislusne odmocniny. Vidime, ze "nejlepsi" krivka **odpovida exponentu 0.179541**. Jinymi slovy, pozadovana krivka se bude nachazet mezi krivkami pro sestou odmocninu (1/6 = 0.1667) a patou odmocninu (1/5 = 0.2)
+```{r}
+objective <- function(k, x, y) {
+  y_hat <- x^k
+  mse <- sum((y - y_hat)^2) 
+}
+
+nejlepsi_odmocnina <- optim(par = 1/2, fn = objective, x = spotify$liveness, y = spotify$energy)
+nejlepsi_odmocnina$par
+```
+
+Nakonec tedy zobrazme tuto nejlepsi krivku odmocniny do grafu.
+```{r}
+plot(x = spotify$liveness, 
+     y = spotify$energy, 
+     main = "Vztah mezi energy a loudness pisnicek na Spotify", 
+     xlab = "Liveness", 
+     ylab = "Energy", 
+     col = adjustcolor("black", alpha.f = 0.1),
+     pch = 20)
+
+curve(expr = x^(nejlepsi_odmocnina$par), from = 0.0000000001, to = 1, add = TRUE, lwd = 3, col = "seagreen3")
+```

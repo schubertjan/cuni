@@ -1,0 +1,398 @@
+---
+title: "Funkce a grafika v R II."
+author: "Ivan Petrusek, Jan Schubert"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
+```
+
+V dnesnim cviceni navazeme na latku z minuleho tydne. Predstavime si dalsi funkce: **kvadratickou**, **exponencialni** a **logaritmickou**. Zaroven si ukazeme jak tyto funkce derivovat. Budeme pritom dale pouzivat grafy, abychom si funkce dokazali lepe predstavit. 
+
+Zacneme s **funkci kvadratickou**. V nejjednodussi podobe se kvadraticka funkce zapisuje jako $y = x^2$ a je mozne ji zapsat take jako $y = x.x$ (tuto formu oznacujeme jako *ryze kvadraticka funkce*). Kvadraticka funkce casto obsahuje take linearni clen $x$ a konstantu $c$. Stejne jako u linearni funkce konstanta znaci, kde krivka funkce protina vertikalni osu y. S konstantou a linearnim clenem je mozne kvadratickou funkci vyjadrit jako $y = ax^2 + bx + c$. Abychom si lepe predstavili, jak kvadraticka funkce vypada, a jak jeji jednotlive casti ovlivnuji jeji prubeh, tak si ji nakreslime do grafu. Nejdrive si zkusime nakreslit ryze kvadratickou funkci $y = x^2$.
+
+Abychom mohli kreslit krivky funkci do grafu, kde nejsou zadne body, musime ve funkci `plot` specifikovat argument `type` tak, ze `type = "n"`, coz znamena, ze R vytvori prazdny graf ("n" je tady zkratka pro *nothing*). Zaroven musime specifikovat rozsah os *x* a *y*, abychom R rekli v jakem rozsahu ma prazdny graf namalovat. To muzeme udelat pomoci argumentu `ylim` a `xlim`. Nakonec nakreslime vertikalni caru (matematicky se jedna o vertikalni osu *y*), ktera bude prochazet bodem [0; 0]. To udelame pomoci funkce `abline`, kde specifikujeme bod, kterym ma vertikalni primka prochazet `v = 0`. Nakonec pri vytvareni legendy vyuzivame funkci `bquote`, ktera nam umozni matematicky zapsat rovnici ryze kvadraticke funkce (nebo jakekoli jine funkce). Obecne funkce `bquote` slouzi k psani matematickych vyrazu do grafu (at uz do nazvu grafu, popisku na horizontalni/vertikalni ose, do legendy nebo na jakekoli misto uvnitr grafu).
+```{r}
+x <- c(-10:10)
+n <- length(x)
+plot(x, type = "n", 
+     ylim = c(0, 200), 
+     xlim = c(-10, 10),
+     main = "Prubeh kvadraticke funkce", xlab = "x", ylab = "y")
+abline(v = 0)
+
+curve(x^2, from = x[1], to = x[n], 
+      add = TRUE, 
+      col = "black", 
+      lwd = 2)
+
+legend("topleft", 
+       legend = bquote(y == x^2), 
+       col = "black", 
+       lwd = c(2))
+```
+
+Zkusme nyni pridat koeficienct $a$, tedy budeme zobrazovat prubeh funkce $y = ax^2$. Z prednasky cislo 11 vime, ze koeficienct $a$ urcuje **sirku paraboly**  a **orientaci paraboly**. Cim vice se koeficienct $a$ blizi 0, tim je parabola sirsi. Pokud je koeficient $a$ **kladny**, tak ma parabola tvar pismena "U". V tomto pripade ma kvadraticka funkce *globalni minimum*, ktere urcuje ypsilonova souradnice vrcholu paraboly. Kvadraticka funkce s kladnym koeficientem $a$ *nema maximum* (ramena paraboly totiz rostou do plus nekonecna). Pokud je koeficient $a$ **zaporny**, tak ma parabola tvar prevraceneo pismena "U". V tomto pripade ma kvadraticka funkce *globalni maximum*, ktere urcuje ypsilonova souradnice vrcholu paraboly. Kvadraticka funkce se zapornym koeficientem $a$ *nema minimum* (ramena paraboly totiz klesaji do minus nekonecna). 
+Pokud v ramci legendy grafu formulujeme argument `bty = "n"`, tak se legenda do grafu doplni bez ramecku.
+```{r}
+plot(x, type = "n", 
+     ylim = c(1, 200), 
+     xlim = c(-10, 10),
+     main = "Prubeh kvadraticke funkce", xlab = "x", ylab = "y")
+abline(v = 0)
+
+curve(x^2, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "black")
+
+# a = 1.5 (vysledkem bude uzsi parabola)
+curve(1.5 * x^2, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "red")
+
+# a = 0.5 (vysledkem bude sirsi parabola)
+curve(0.5 * x^2, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "blue")
+
+legend("topleft", 
+       legend = as.expression(c(bquote(y == 1.5*x^2), bquote(y == x^2), bquote(y == 0.5*x^2))), 
+       col = c("red", "black", "blue"), 
+       lwd = c(2, 2, 2),
+       bty = "n")
+```
+
+
+Ted zkusme pridat konstantu $c = 10$ a prubeh kvadraticke funkce si opet zobrazit do grafu. Budeme tedy zobrazovat prubeh funkce $y = ax^2 + c$. Stejne jako u linearni funkce tato konstanta znaci, kde krivka protina vertikalni osu y. Jelikoz jsme si pro tento priklad zvolili konstantu 10, tak modra parabola protina vertikalni osu grafu v bode [0; 10].
+```{r}
+plot(x, type = "n", 
+     ylim = c(1, 200), 
+     xlim = c(-10, 10),
+     main = "Prubeh kvadraticke funkce", xlab = "x", ylab = "y")
+abline(v = 0)
+
+curve(x^2, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "black")
+
+curve(1.5 * x^2, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "red")
+
+# c = 10 (parabola se posune podel vertikalni osy o 10 smerem nahoru)
+curve(1.5 * x^2 + 10, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2,
+      col = "blue")
+
+legend("topleft", 
+       legend = as.expression(c(bquote(y == x^2), bquote(y == 1.5*x^2), bquote(y == 1.5*x^2 + 10))), 
+       col = c("black", "red", "blue"), 
+       lwd = c(2, 2, 2),
+       bty = "n")
+```
+
+Nakonec pridame linearni clen $bx$, kde koeficient $b$ bude rovno 3. Budeme tedy zobrazovat prubeh kvadraticke funkce $y = ax^2 + bx + c$.
+```{r}
+plot(x, type = "n", 
+     ylim = c(1, 200), 
+     xlim = c(-10, 10),
+     main = "Prubeh kvadraticke funkce", xlab = "x", ylab = "y")
+abline(v = 0)
+
+curve(x^2, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "black")
+
+curve(1.5 * x^2, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "red")
+
+curve(1.5 * x^2 + 10, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2,
+      col = "blue")
+
+# b = 3 (vrchol paraboly se v tomto pripade posune doleva)
+curve(1.5 * x^2 + 3 * x + 10, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, col = "green")
+
+legend(x = -5, y = 175, 
+       legend = as.expression(c(bquote(y == x^2), bquote(y == 1.5*x^2), bquote(y == 1.5*x^2 + 10), bquote(y == 1.5*x^2 + 3*x + 10))), 
+       col = c("black", "red", "blue", "green"), 
+       lwd = c(2, 2, 2, 2),
+       bty = "n")
+```
+
+\  
+
+Dalsi funkci, kterou si predstavime je **funkce exponencialni**. Exponencialni funkci muzeme predpisem zapsat jako $y = a^x$, pricemz pro zaklad $a$ plati, ze $a > 0$ a $a \neq 1$. Pojdme si postupne predstavit exponencialni funkce o zakladu $a > 1$ a $a < 0$. Bez ohledu na hodnotu zakladu $a$ plati, ze exponencialni funkce **nema extremy**. To znamena, ze exponencialni funkce nema globalni/lokalni maximum ani globalni/lokalni minimum. Horizontalni osa grafu predstavuje asymptotu grafu - graf exponencialni funkce se ale nikdy horizontalni osy *x* nedotkne (a tudiz exponencialni funkce nema minimum). Definicnim oborem exponencialni funkce jsou vsechna realna cisla (jinymi slovy, za *x* muzeme dosadit jakekoli realne cislo).
+
+```{r}
+x <- seq(from = -5, to = 5, by = 1)
+n <- length(x)
+plot(x,
+     col = "black", 
+     main = "Exponencialni funkce", 
+     ylab = "y", 
+     xlab = "x", 
+     type = "n", 
+     xlim = c(x[1], x[n]), 
+     ylim = c(0, 30))
+
+# zaklad a = 2
+curve(expr = 2^x, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "black")
+abline(a = 0, b = 0, lty = 1)
+legend("topleft", legend = bquote(y == 2^x), lwd = 2)
+```
+
+
+Nyni si ukazeme prubeh exponencialni funkce, pokud je zaklad $a < 1$. Pokud je zaklad $a < 1$, tak je exponencialni funkce klesajici na celem definicnim oboru (jedna se tedy o prostou funkci). Pokud je zaklad $a > 1$, tak je exponencialni funkce rostouci na celem definicnim oboru (stale se tedy jedna o prostou funkci).
+```{r}
+plot(x,
+     col = "black", 
+     main = "Exponencialni funkce", 
+     ylab = "y", 
+     xlab = "x", 
+     type = "n", 
+     xlim = c(x[1], x[n]), 
+     ylim = c(0, 30))
+abline(a = 0, b = 0, lty = 1)
+
+curve(expr = 2^x, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "black")
+
+# zaklad a = 0.3
+curve(expr = 0.3^x, 
+      from = x[1], to = x[n], 
+      add = TRUE, 
+      lwd = 2, 
+      col = "red")
+
+legend("topleft", 
+       legend = as.expression(c(bquote(y == 2^x),
+                                bquote(y == 0.3^x))), 
+       lwd = c(2, 2), 
+       col = c("black", "red"))
+```
+
+\  
+
+Nakonec si predstavime **logaritmickou funkci**. Logaritmicka funkce je definovana jako $y = log_{a}x$, kde $a$ oznacuje zaklad logaritmu. Pro zaklad $a$ pritom plati, ze $a>0$ a $a \neq 1$. Bez ohledu na hodnotu zakladu $a$ plati, ze logaritmicka funkce **nema extremy**. To znamena, ze logaritmicka funkce nema globalni/lokalni maximum ani globalni/lokalni minimum. Vertikalni osa grafu predstavuje asymptotu grafu - graf logaritmicke funkce se ale nikdy vertikalni osy *y* nedotkne (a tudiz logaritmicka funkce nema minimum/maximum). Definicnim oborem logaritmicke funkce jsou kladna realna cisla vetsi nez 0 (nulu za *x* tedy dosadit nemuzeme). Oborem hodnot logaritmicke funkce jsou vsechna realna cisla.
+
+Logaritmicka funkce predstavuje **inverzni funkci** k funkci expenencialni. To znamena, ze pokud mame nejake cislo *x*, ktere nejdrive "zlogaritmujeme" a nasledne vypocitany vysledek zpatky "zexponujeme", tak dostaneme puvodni cislo *x*. Vyberme si jako zaklad logaritmu (soucasne take jako zaklad exponencialni funkce) dvojku (to znamena $a = 2$). Pro zjednoduseni vypoctu si jako *x* vybereme osmičku (to znamena $x = 8$). Mame tedy $y = log_{2}8$, coz cteme *logaritmus cisla 8 pri zakladu 2*. Jinymi slovy se ptame, na jaky exponent $y$ musime umocnit zaklad $a = 2$, abychom dostali $8$? Odpoved je $3$ ($y = 3$). Mame tedy vysledek $y = 3$. Tento vysledek bude pri exponovani zakladu $a = 2$ predstavovat exponent. Dostavame tedy $a^y = 2^3=8=x$. Vidime tedy, ze po aplikaci inverzni funkce dostavame zpatky puvodni *x* ($x = 8$).
+
+K vypoctu logaritmu v R slouzi funkce `log`. Funkce `log` ma dva argumenty: cislo `x` a zaklad `base`. Cislo `x` muze byt jedno cislo nebo take vektor realnych cisel (vzdy vetsich nez 0). Zaklad logaritmu pri volani teto funkce definujeme prostrednictvim argumentu `base` (funkce `log` defaultne pocita prirozeny logaritmus, tzn. `base = 2.718282 = e`).
+\  
+Nasledujici R kod pocita logaritmy vektoru `x`, ktery obsahuje prirozena cisla 1 az 10. Zakladem logaritmu v tomto prikladu je $3$. Vysledky teto operace jsou ulozeny do vektoru `y`. Nasledne zaklad $3$ exponujeme na vektor vysledku `y`, pricemz vysledky teto druhe operace ukladame do vektoru `x_`. Po zobrazeni vysledku teto zpetne transformace dostavame puvodni vektor prirozenych cisel 1 az 10.
+```{r}
+# vytvoreni vektoru prirozenych cisel od 1 do 10
+x <- c(1:10)
+print(x)
+# ulozeni vysledku logaritmovani do vektoru y
+y <- log(x, base = 3)
+print(y)
+# realizace zpetne transformace: vyuzivame exponencialni funkci, abychom se vratili zpatky k vektoru prirozenych cisel 1 az 10
+x_ <- 3^y
+print(x_)
+```
+
+Nejpouzivanejsim logaritmem je **prirozeny logaritmus**, ktery ma zaklad $a = e = 2.718282$ (kde *e* predstavuje tzv. *Eulerovo cislo*). Spousta jevu je merena na logaritmicke skale. Napriklad zemetreseni ([Richterova skala](https://cs.wikipedia.org/wiki/Momentov%C3%A1_%C5%A1k%C3%A1la)) nebo zvuk (dB). To vecne  znamena, za narust o 1 stupen na Richterove skale ve skutecnosti predstavuje ohromny narust v sile otresu. Pojdme si tuto skutecnost vyjadrit pomoci logaritmicke funkce.
+```{r}
+x <- 1:9000
+# pocitame prirozeny logaritmus pro kazde z 9000 prirozenych cisel ve vektoru x
+y <- log(x)
+
+plot(x, y, 
+     yaxp = c(0, 9, 9),
+     xaxp = c(0, 9000, 18),
+     type = "l",
+     xlab = "Mnozstvi uvolnene energie", ylab = "Richterova skala",
+     main = "Vztah mezi mnozstvim energie a jejim merenim na Richterove skale", lwd = 2, las = 1)
+# pridame vertikalni a horizontalni primku pro hodnotu Richterovy sklaly = 6
+skala = 6
+lines(x = c(-1e10, exp(skala)), y = c(skala,skala))
+lines(x = c(exp(skala), exp(skala)), y = c(0,skala))
+# pridame vertikalni a horizontalni primku pro hodnotu Richterovy sklaly = 7
+skala = 7
+lines(x = c(-1e10, exp(skala)), y = c(skala,skala))
+lines(x = c(exp(skala), exp(skala)), y = c(0,skala))
+# pridame vertikalni a horizontalni primku pro hodnotu Richterovy sklaly = 8
+skala = 8
+lines(x = c(-1e10, exp(skala)), y = c(skala,skala))
+lines(x = c(exp(skala), exp(skala)), y = c(0,skala))
+```
+
+Prestoze je prirozeny logaritmus nejpouzivanejsi, neni duvod omezovat se pouze na prirozeny logaritmus. Casto se pracuje take s **dekadickym logaritmem**, ktery ma zaklad 10 ($a = 10$). Pro dekadicky logaritmus existuje v R specialni funkce `log10`. Stejny vysledek samozrejme muzeme ziskat s vyuzitim funkce `log` (tak, ze pro dekadicky logaritmus nadefinujeme argument `base = 10`).
+```{r}
+# aby se nam jednoduseji pocitalo, tak jako cisla ve vektoru x volime n-te mocniny cisla 10
+x <- c(10, 100, 1000, 10000)
+# pocitame dekadicke logaritmy z prvku vektoru x. Vecne resime otazku: na jaky exponent musime umocnit cislo 10, abychom dostali cisla 10, 100, 1000 a 10000?
+y <- log(x, base = 10)
+print(y)
+# stejne tak muzeme pouzit specialni funkci pro dekadicky logaritmus: log10
+y_ <- log10(x)
+print(y_)
+# vidime, ze vysledky jsou stejne (bez ohledu na to, kterou funkci pouzijeme)
+log(x, base = 10) == log10(x)
+```
+
+<br/><br/>
+Nakonec si ukazeme **derivace funkci v R**. Obecne rozlisujeme mezi **derivaci funkce** a **derivaci funkce v bode** (pro podrobny vyklad techto pojmu viz powerpointovou prezentaci cislo 12 z prednasek kurzu). Tyto dva pojmy musime prisne odlisovat! **Derivace funkce** je jina funkce, kterou prirazujeme puvodni spojite funkci. Derivace funkce vyjadruje smernici tecny ke grafu puvodni funkce pro nejake obecne x (z definicniho oboru funkce). **Derivace funkce v bode** vyjadruje smernici tecny ke grafu puvodni funkce pro nejaky bod na grafu funkce (o ktery se zajimame). Jednoduse receno, derivace funkce je  *predpis jine funkce* a derivace funkce v bode je *cislo*. Derivaci funkce v bode vypocitame tak, ze do zderivovane funkce dosadime pozadovene $x$ a po upraveni ziskame smernici tecny v tomto bode.
+
+
+**Derivaci funkce v bode** dobre znazornuje nasledujici animace. Bodum A lezicim na grafu funkce opisujeme **tecny**. Derivace v bode A je na animaci znazornena $f^′(x)$, pricemz $x$ se v animaci meni podle $x$-ove souradnice bodu A. Vidime, ze derivace v bode je cislo, ktere predstavuje smernici nakreslene tecny. Pokud je tecna nakreslena cervenou barvou, tak prislusna funkce klesa a smernice tecny je zaporna. Pokud je tecna nakreslena zelenou barvou, tak prislusna funkce roste a smernice tecny je kladna.
+
+
+![](https://upload.wikimedia.org/wikipedia/commons/2/2d/Tangent_function_animation.gif)
+
+
+V R muzeme derivace zakladnich funkci vypocitat pomoci funkce `D`. Pojdme se podivat na jeji napovedu `?D`. Funkce `D` ma **dva zakladni argumenty**. Prvni argument `expr` vyzaduje objekt tridy `expression`. Tento argument bude obsahovat predpis funkce, kterou chceme derivovat - nepiseme pritom levou stranu predpisu funkce (*lhs = left-hand side*). Pokud napriklad chceme derivovat funkci $y = x^4$, tak jako argument `expr` piseme pouze $x^4$. Druhy argument `name` obsahuje jmeno promenne, vzhledem ke ktere derivujeme. Jelikoz v nasem kurzu derivujeme pouze funkce o jedne promenne $x$, tak argument `name` budeme vzdy definovat nasledovne `name = "x"`.
+
+<br/>
+Nasledujici blok R kodu ukazuje **priklady derivovani zakladnich funkci**:
+```{r}
+# mocninna funkce
+D(expression(x^4), "x")
+# odmocninna funkce
+D(expression(x^(3/2)), "x")
+# exponencialni funkce
+D(expression(2^x), "x")
+# logaritmicka funkce - prirozeny logaritmus
+D(expression(log(x)), "x")
+# logaritmicka funkce - logaritmus se zakladem 2
+D(expression(log(x)/log(2)), "x")
+```
+
+<br/>
+Nasledujici blok R kodu ukazuje **priklady derivovani vice funkci** (u nasledujicich pripadu se vzdy jedna o dvojice funkci s jednou promennou $x$):
+```{r}
+# funkce nasobena konstantou
+D(expression(10*x^5), "x")
+# soucet dvou funkci
+D(expression((x^4) + (3*x^-10)), "x")
+# soucin dvou funkci
+D(expression((x^4) * (3*x^10)), "x")
+# podil dvou funkci
+D(expression(2^x / x^2), "x")
+```
+Z vysledku je patrne, ze z matematickeho hlediska funkce `D` nevede vzdy k nejelegantnejsimu vysledku. Jinymi slovy, velmi casto lze vraceny vysledek dale zjednodusovat na prijatelnejsi formu. Doporucujeme tedy se vzdy zamyslet nad vysledkem, ktery nam tato funkce vrati a pokusit se vysledek dale upravit (nebo si funkci od zacatku derivovat "manualne" - viz pravidla pro derivovani z prednasky cislo 12).
+
+
+<br/>
+**Aplikovani derivace ke zkoumani prubehu funkce**
+
+Pri zkoumani prubehu funkce resime nasledujici otazky:
+
+* Je funkce rostouci/klesajici v konkretnim bode?
+* V jakych intervalech je funkce rostouci/klesajici?
+* Ma funkce extremy (maximum/minimum)?
+* Pokud ma funkce extremy, kde se tyto extremy nachazi (jake jsou jejich souradnice)?
+* Kde krivka funkce protina osy grafu?
+
+Vyuzijme derivace ke zkoumani prubehu funkce urcene predpisem: $y = -x^4+8x^2-7$. V tomto pripade se jedna o **polynom ctvrteho stupne** (protoze predpis funkce obsahuje *kvarticky clen* $-x^4$). U teto funkce muzeme za $x$ dosadit jakekoli cislo - nejsme nicim omezeni. *Definicnim oborem* teto funkce tudiz jsou *vsechna realna cisla*, to znamena: **D(*f)* = R**.  
+Podobne jako u kvadraticke funkce (ktera predstavuje *polynom druheho stupne*) nam znamenko pred kvartickym clenem rika, jestli budou ramena krivky teto funkce orientovana na grafu smerem nahoru nebo dolu. Jelikoz mame *zaporne znamenko*, tak ramena krivky budou orientovana *dolu*. Z toho vyplyva, ze funkce nebude mit minimum - funkcni hodnoty polynomu budou smerovat do minus nekonecna (minus nekonecno neni realne cislo, tudiz se nejedna o minimum funkce). Zaroven z toho ale vyplyva, ze tato funkce bude mit maximum. Nejen k urceni tohoto maxima nam poslouzi prave zminena derivace.  
+<br/>
+Vyzkousejme nejdrive nakreslit graf teto na prvni pohled "hrozive" funkce.
+```{r}
+# Nejdrive vyzkousime, jak se funkce chova na nejakem "uzkem" intervalu definicniho oboru, ktery obsahuje 0 (tady je to interval od -4 do 4, stejne tak by to ale mohl byt interval [-3; 3] nebo [-5; 5])
+x <- seq(from = -4, to = 4, by = 1)
+y <- -x^4 + 8*x^2 - 7
+# Vidime, ze funkcni hodnoty polynomu ctvrteho stupne jsou na tomto intervalu mezi -135 a 9. Tomu prizpusobime rozsah osy x a y (argumenty xlim a ylim)
+range(y)
+plot(x, y, type = "n", ylim = c(-100, 50), xaxp = c(-4, 4, 8), yaxp = c(-100, 50, 6), cex = 2, las = 1, ylab = "y", main = bquote(y == -x^4 + 8*x^2 - 7))
+curve(expr = -x^4 + 8*x^2 - 7, from = -4, to = 4, add = TRUE, las = 1, lwd = 2, col = "red", xlab = "x", ylab = "y")
+abline(v = 0)
+abline(h = 0)
+```
+
+Pouzijeme funkci `D` k vypoctu prvni derivace polynomicke funkce:
+```{r}
+D(expression(-x^4 + 8*x^2 - 7), "x")
+```
+
+Manualne bychom prvni derivaci spocitali nasledovne (vyuzivame pritom *pravidlo pro derivovani mocninne funkce*, *pravidlo pro derivovani souctu funkci* a poznatek, ze *derivace konstantni funkce je nula*):
+$(-x^4 + 8x^2 - 7)^′ = -4x^3+16x$ 
+<br/>
+Do naseho puvodniho grafu ted zakreslime krivku prvni derivace (krivka ma modrou barvu). Pripomenme si, ze derivace funkce vyjadruje smernici tecny ke grafu puvodni funkce pro nejake obecne $x$ (z definicniho oboru realnych cisel). Z grafu prvni derivace muzeme odvodit nasledujici dulezite informace o prubehu polynomicke funkce:
+
+* Pro vsechna $x$, kde ma prvni derivace *kladnou hodnotu*, je polynom ctvrteho stupne *rostouci*. To znamena, ze pokud je modra krivka prvni derivace nad horizontalni osou grafu, tak polynom ctvrteho stupne roste.
+* Pro vsechna $x$, kde ma prvni derivace *zapornou hodnotu*, je polynom ctvrteho stupne *klesajici*. To znamena, ze pokud je modra krivka prvni derivace pod horizontalni osou grafu, tak polynom ctvrteho stupne klesa.
+* Nakonec pro vsechna $x$, kde je prvni derivace *rovna nule* (to znamena, ze polynom ctvrteho stupne je pro tato $x$ *konstantni*) - polynom neroste ani neklesa. Jinymi slovy se zajimame o body, kde modra krivka prvni derivace protina horizontalni osu grafu.
+```{r}
+x <- seq(from = -4, to = 4, by = 1)
+y <- -x^4 + 8*x^2 - 7
+plot(x, y, type = "n", ylim = c(-100, 100), xaxp = c(-4, 4, 8), yaxp = c(-100, 100, 10), cex = 2, las = 1, ylab = "y", main = bquote(y == -x^4 + 8*x^2 - 7))
+curve(expr = -x^4 + 8*x^2 - 7, from = -4, to = 4, add = TRUE, las = 1, lwd = 2, col = "red", xlab = "x", ylab = "y")
+abline(v = 0)
+abline(h = 0)
+
+# krivka prvni derivace
+curve(expr = -4*x^3+16*x, from = -4, to = 4, add = TRUE, las = 1, lwd = 2, col = "blue", xlab = "x", ylab = "y")
+```
+
+Abychom zjistili, kde graf prvni derivace funkce protina horizontalni osu grafu, tak dame prvni derivaci rovnou nule: $-4x^3+16x = 0$. Levou stranu teto kubicke rovnice muzeme zjednodusit do podoby, abychom mohli koreny kubicke rovnice jednoduse dopocitat. Z grafu prvni derivace pritom vime, ze kubicka rovnice bude mit tri koreny (protoze modra krivka protina horizontalni osu grafu na trech mistech). Zjednodusme tedy postupne levou stranu kubicke rovnice:
+$-4x^3+16x = -4x(x^2-4)=-4x(x-2)(x+2)$  
+Z posledniho zapisu vidime, ze prvni derivace se rovna nule pro tri nasledujici koreny: $x_1 = -2; x_2 = 0; x_3 = 2$. Tyto tri $x$-ove souradnice tedy predstavuji kandidaty pro extremy polynomicke funkce. Teoreticky se muze jednat o *globalni maximum*, *lokalni maximum* nebo *lokalni minimum*. Uz pritom vime, ze funkce nema globalni minimum. Asi nejjednodussi zpusob, jak zjistit, o jake druhy extremu se jedna, je dosadit tri vypocitane koreny do puvodniho predpisu polynomu ctvrteho stupne. 
+```{r}
+# vytorime vektor se tremi koreny kubicke rovnice
+x_extremy <- c(-2, 0, 2)
+# vektor korenu dosadime do predpisu polynomicke funkce
+y_extremy <- -x_extremy^4 + 8*x_extremy^2 - 7
+print(y_extremy)
+```
+Vidime, ze polynom ctvrteho stupne $y = -x^4+8x^2-7$ ma **dve globalni maxima**. Maximum teto polynomicke funkce je tedy $9$. Oborem hodnot teto funkce tudiz jsou realna cisla mensi nebo rovna 9, to znamena: **H(*f)* = (-∞; 9]**. Souradnice dvou globalnich maxim jsou: [-2; 9] a [2; 9].
+
+Vidime take, ze polynom ctvrteho stupne $y = -x^4+8x^2-7$ ma **jedno lokalni minimum**. Lokalni minimum teto funkce je tedy $-7$. Lokalni minimum ma souradnice [0; -7]. Obecne *lokalni minimum predstavuje minimalni funkcni hodnotu na nejake podmnozine/intervalu definicniho oboru funkce*. Vlevo od lokalniho minima funkce klesa a vpravo od lokalniho minima funkce roste. V lokalnim minimu se tedy prubeh funkce meni. O lokalnim minimu mluvime proto, ze funkce ma na nekterych intervalech definicniho oboru mensi funkcni hodnoty nez je hodnota lokalniho minima.
+
+Pokud bychom to meli shrnout, tak pro funkci $y = -x^4+8x^2-7$ plati:
+
+* Funkce **roste** na intervalu od minus nekonecna do -2: roste na **(-∞; -2)**
+* Funkce **klesa** na intervalu od -2 do 0: klesa na **(-2; 0)**
+* Funkce **roste** na intervalu od 0 do 2: roste na **(0; 2)**
+* Funkce **klesa** na intervalu od 2 do plus nekonecna: klesa na **(2; ∞)**
+
+Na uplny zaver shrnme tyto informace o prubehu funkce do grafu. Vyuzijeme k tomu funkci `rect`, ktera do grafu nakresli barevne odlisene obdelniky podle toho, jestli funkce na nejakem intervalu definicniho oboru roste nebo klesa. U funkce `rect` je potreba definovat souradnice kazde strany obdelniku (argumenty: `xleft`, `ybottom`, `xright` a `ytop`). Take je s vyuzitim funkce `text` mozne do grafu na libovolne misto doplnit jakykoli text. U funkce `text` je potreba definovat x-ovou a y-ovou souradnici, kde ma byt text do grafu doplnen (argumenty: `x` a `y`).
+```{r}
+x <- seq(from = -4, to = 4, by = 1)
+y <- -x^4 + 8*x^2 - 7
+plot(x, y, type = "n", ylim = c(-100, 100), xaxp = c(-4, 4, 8), yaxp = c(-100, 100, 10), cex = 2, las = 1, ylab = "y", main = bquote(y == -x^4 + 8*x^2 - 7))
+curve(expr = -x^4 + 8*x^2 - 7, from = -4, to = 4, add = TRUE, las = 1, lwd = 2, col = "red", xlab = "x", ylab = "y")
+abline(v = 0)
+abline(h = 0)
+rect(xleft = -5, ybottom = -120, xright = -2, ytop = 120, col = adjustcolor("green", alpha.f = 0.1))
+rect(xleft = -2, ybottom = -120, xright = 0, ytop = 120, col = adjustcolor("red", alpha.f = 0.1))
+rect(xleft = 0, ybottom = -120, xright = 2, ytop = 120, col = adjustcolor("green", alpha.f = 0.1))
+rect(xleft = 2, ybottom = -120, xright = 5, ytop = 120, col = adjustcolor("red", alpha.f = 0.1))
+text(x = -3, y = 80, "rostouci", cex = 1.5)
+text(x = -1, y = 80, "klesajici", cex = 1.5)
+text(x = 1, y = 80, "rostouci", cex = 1.5)
+text(x = 3, y = 80, "klesajici", cex = 1.5)
+```
+Z grafu polynomu ctvrteho stupne je take vidno, ze se jedna o **sudou funkci**. To znamena, ze plati: $f(x) = f(-x)$. Graf funkce je tedy soumerny podle vertikalni osy *y*.

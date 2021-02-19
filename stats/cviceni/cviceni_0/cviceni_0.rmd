@@ -1,0 +1,63 @@
+---
+title: 'Statistika: Opakování'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+V tomto dokumentu si zopakujeme základní typy objektů a jak se stahují k typu proměnných, které se ve statistice používají.
+
+Prvním typem proměnné, který si ukážeme je **nominální** proměnná. Tento typ proměnné se vyznačuje tím, že jeho hodnoty nemůžeme seřadit (nemůžeme říci, jaká hodnota je větší než jiná) nebo nemůžeme říci o kolik je jedna hodnota větší než druhá. Příkladem takové proměnné je například pohlaví nebo národnost. V R je pak takováto proměnná typicky uložena jako objekt třídy `character`. V R sice můžeme takovýto objekt seřadit, ale toto seřazeníje podle abecedy, ne podle toho jaká je hodnota je větší. 
+
+```{r}
+jmena <- c("Jan", "Monika", "Jakub", "Anna", "Lucie")
+print(jmena)
+class(jmena)
+sort(jmena)
+```
+
+Dalším typem proměnné, který si představíme je **ordinální** proměnná. U ordinální proměnné (na rozdíl od nominální) můžeme hodnoty seřadit, stále ale nemůžeme říci, o kolik je jedna hodnota větší než druhá. Mezi ordinální proměnné patří například vzdělání (základní/střední/vysokoškolské) nebo odpovědi na škály (spokojený/nespokojený). V R ordinální proměnné vytvoříme pomocí funkce `factor`. V této funkci specifikujete pořadí hodnot v argumentu `levels`. 
+```{r}
+skala <- factor(x = c("Velmi spokojeny", "Spokojeny", "Nespokojeny", "Velmi nespokojeny", 
+                      "Spokojeny", "Velmi nespokojeny", "Velmi spokojeny", "Nespokojeny"),
+                levels = c("Velmi spokojeny", "Spokojeny", 
+                           "Nespokojeny", "Velmi nespokojeny")
+                )
+print(skala)
+class(skala)
+sort(skala)
+```
+
+Přestože vektor třídy `factor` vypadá jako textový vektor, ve skutečnosti je blíže číselnému vektoru (`numeric`). Aby R vědělo, jak má hodnoty seřadit, jsou jednotlivé hodnoty reprezentovány čísly. Na tuto číselnou reprezentaci se můžete podívat pokud převedete `factor` do číselné (`numeric`) proměnné. 
+
+```{r}
+as.numeric(skala)
+```
+
+
+Poslední proměnnou, kterou si představíme **kardinální**. U tohoto typu proměnné můžeme určit jak pořadí, tak i to, o kolik je jedna hodnota větší než druhá. Typicky jsou kardinální proměnné číselné proměnné. Příkladem krdinální proměnné je například výška. V R jsou kardinální proměnné typicky reprezentovány objektem třídy `numeric`.
+```{r}
+vyska <- c(165, 186, 176, 182, 191)
+print(vyska)
+class(vyska)
+sort(vyska, decreasing = TRUE)
+vyska[1] - vyska[1:4]
+```
+
+**Shrnutí**:
+
+| Typ      | Můžeme seřadit | O kolik větší |
+|----------|----------------|---------------|
+|Nominální |                |               |
+|Ordinální |        x       |               |
+|Kardinální|        x       |       x       |
+
+
+Nakonec si připomeneme, že pokud chceme proměnné jednotlivých tříd vložit do matice (řádky *x* sloupce), máme dvě možnosti: objekt `matrix` nebo `data.frame`. `matrix` se vyznačuje tím, že všechny proměnné (sloupce) musejí mít stejnou třídu. U objektu `data.frame` můžeme použít různé typy proměnných jako sloupce.
+```{r}
+cbind(jmena, vyska)
+data.frame(jmena = jmena, spokojenost = skala[1:5], vyska = vyska)
+```
+
