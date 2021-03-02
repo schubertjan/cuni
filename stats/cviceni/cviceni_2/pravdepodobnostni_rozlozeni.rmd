@@ -1,0 +1,230 @@
+---
+title: "Rozložení náhodných proměnných"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Klíčové pojmy**:
+
+* náhodná proměnná
+* PMF (probability mass function) / PDF (probability density function) - hustota pravděpodobnosti
+* CDF (cumulative distribution function) - distribuční funkce
+* kvantily
+* z-skór
+* uniformní (rovnoměrné) rozdělení
+* binomické rozdělení
+* normální rozdělení
+
+
+Náhodná proměnná je taková proměnná, jejíž hodnoty byly generovány náhodným procesem. Jako náhodný proces můžeme spoustu věcí:
+
+* náhodnost při výběru pozorování (např. náhodný výběr respondentů)
+* nepřesnost měření (např. měření IQ) 
+* náhodou při každém pokusu (např. směr chůze opilého člověka)
+
+Z definice může náhodná proměnná nabývat různých hodnot (jevů). Souhrn těchto různých hodnoty nazýváme rozdělení pravděpodobnosti proměnné. Toto rozdělení nám řekne, s jakou pravděpodobností daný jevy nastane. Typ tohoto pravděpodobnostního rozložení záleží na procesu, který proměnnou vytváří i na typu proměnné. 
+
+
+![](/home/schubertj/cuni/stats/cviceni/cviceni_2/schema.png)
+
+
+Znalost rozdělení pravděpodobnosti proměnné je velmi užiteční věc, protože nám dokáže pomoci předpovídat hodnoty dané proměnné. Ukažme si teď příklad takového rozložení na hodu kostkou. Řekněme, že naše proměnná bude mít 100 pozorování (100 hodů kostkou).
+
+
+#### Uniformní rozložení
+```{r}
+set.seed(42)
+#hod kostkou
+kostka <- c(1:6)
+n <- 100
+hody <- sample(kostka, size = n, replace = TRUE)
+#absolutni cetnost
+t_abs <- table(hody)
+#relativni cetnost
+t_rel <- t_abs/n
+
+print(paste0("absolutni cetnost"))
+t_abs
+print(paste0("relativni cetnost"))
+t_rel
+
+barplot(t_rel, main = "Relativni cetnost 100 hodu", 
+        ylab = "Relativni cetnost", 
+        xlab = "Cislo")
+```
+
+Relativní četnost jednotlivých jevů (hodnot, čísel na kostce) nám řekne pravděpodobnost, s jakou daný jev nastane. Například číslo 1 padlo v našem příkladu v 15% případů. Jak si ale pamatujete ze zimního semestru, relativní četnost se pravděpodobnosti přibližuje pouze pokud počet pokusů je velmi vysoký. Co když ale nemůžeme nasbírat velký počet pozorování (pokusů)? Naštěstí existují učité skupiny rozdělení, které nám pravděpodobnosti vyjádří jako funkci. Asi bychom dovedli odhadnout, že náš výsledek uvedený nahoře neodpovídá tomu, jaké hodnoty bychom při hodu kostkou očekávali. Všechny možnosti (tedy 1,2,3,...,6) mají stejnou pravděpodobnost, že padnou. Takovému rozdělení říkáme **uniformní**. Uniformní rozdělení je generováno procesem, který předpokládá, že všechny hodnoty (jevy) proměnné budou stejně reprezentované (tedy, že budou mít stejnou pravděpodobnost realizace). Pokud proměnná $X$ pochází z uniformního rozložení, pak platí, že $X \sim U(a,b)$. Uniformní rozložení je tedy možná vyjádřit pomocí dvou parametrů $a$ a $b$, které vyjadřují minimální a maximální možné hodnoty proměnné. Funkci rozdělení pravděpodobnosti uniformního rozložení (Probability density function, nebo PDF) pro spojitou proměnnou pak můžeme vyjádřit jako: 
+
+\begin{equation}
+  f(x) =
+    \begin{cases}
+      \frac{1}{(b-a)} & \text{$a \le x \le b$}\\
+      0 & \text{jinak}\\
+    \end{cases}       
+\end{equation}
+
+
+A pro diskrétní proměnnou jako $f(x) = 1/N$, pokud $a \le x \le b$, jinak $f(x) = 0$. $N$ v tomto případě vyjadřuje počet možných hodnot, které $x$ může nabýt. U PMF platí, že plocha pod křivkou je rovná 1, tedy $\sum_{}f(x_i) = 1$. U spojité proměnné nelze definovat pravděpodobnost v jednom konkrétním bodě (protože má nekonečně mnoho konkrétních bodů). PDF tedy nevyjadřuje pravděpodobnost, ale hustotu pravděpodobnosti v nějakém malém intervalu (zda je tento malý interval pravděpodobnější než jiný malý interval). Stále, ale platí, že integrál pod křivkou je roven 1.
+
+
+Každé takto specifikované rozdělení pravděpodobnosti má definovaný svůji očekávanou hodnotu a rozptyl. Očekávanou hodnotu uniformního rozdělení lze vypočítat jako $\frac{1}{2}(a+b)$ a jeho rozptyl jako $\frac{1}{12}(b-a)^2$
+
+V praxi nabývá uniformního rozložení například sériová čísla při výrobě [zajímavé využití zde](https://en.wikipedia.org/wiki/German_tank_problem) nebo čekání na tramvaj. Ukažme si příklad čekání na tramvaj. Víme, že tramvaj jezdí každých 5min. My přijdeme na zastávku, ale nevíme, kdy pojede další. Jak dlouho můžeme očekávat, že budeme čekat? Jaká je pravděpodobnost, že tramvaj přijede do 1min 30s? 
+
+```{r}
+a <- 0
+b <- 5
+x <- seq(-1,6, by =0.01)
+pdf <- rep(0, length(x))
+prumer <- (a+b)/2
+
+for(n in c(1:length(x))) {
+  if(x[n] >= a & x[n] <= b) {
+    pdf[n] <- 1 / (b-a)
+  }
+}
+
+plot(x, pdf, 
+     type = "l", 
+     main = paste0("X ~ U(0,5), prumer: ", prumer, " min"), 
+     xlab = "f(x)")
+
+```
+
+Protože integrál pdf se rovná 1 je plocha pod křivkou vyjádřením pravděpodobnosti, že budeme čekat déle (nebo méně), než např. 1min 30s. Tedy jaká je $p(x_i \le 1.5)$. Taková pravděpodobnost je rovna $\sum_{i=0}^{1.5} p(x_{i})$ (nebo spíše integrál, ale nebude to zbytečně komplikovat. Můžeme si to představit jako součet hodně malých intervalů :). Můžeme si ji představit jako modrou plochu pod křivkou.
+
+```{r}
+#?distributions
+pdf = dunif(x=x, min = a, max = b)
+
+#dummy promenne pro vytvoreni modreho obdelniku
+x_aux <- seq(0, 1.5, by = 0.001)
+y_aux <- rep(0.2, length(x_aux))
+
+plot(x, pdf, 
+     type = "l", 
+     main = paste0("X ~ U(0,5), prumer: ", prumer, " min"), 
+     xlab = "X", 
+     ylab = "f(x)")
+# modry obdelnik
+lines(x_aux, y_aux, type = "h", col = "#1f77b4")
+```
+
+Tento výpočet si můžeme představit také tak, že jednotlivé pravděpodobnosti sečeteme kumulativně. Takto vzniklá funkce se nazává cumulative distribution function (CDF). Udává nám kumulativní pravděpodobnost, že nastane jev větší/menší než nějaké hodnota. Tedy pravděpodobnost, že nastane nějaké hodnota $x$ u náhodné proměnné $X$ by se zapsala jako $P(X \le x)$. Náš výpočet nahoře, tedy $p(x_i \le 1.5)$ zobrazíme na grafu modrou čarou.
+
+```{r}
+p_15 <- punif(q=1.5, min = a, max = b)
+
+print(paste0("P(X <= 1.5) = ", p_15))
+
+#ukazeme CDF
+cdf <- punif(q=x, min = a, max = b)
+plot(x, cdf, type = "l", main = "CDF: X ~ U(0,5)", ylab = "F(x)", xlab = "X")
+# vertikalni primka
+lines(rep(1.5, 100), seq(-1, p_15, length.out=100), col = "#1f77b4")
+# horizontalni primka
+lines(seq(-1, 1.5, length.out=100), rep(p_15, 100), col = "#1f77b4")
+points(1.5, p_15, pch = 19, col = "#1f77b4")
+```
+
+
+#### Binomické rozložení
+
+S binomických rozložením jsme se setkali v minulém semestru, když jsme simulovali hody mincí. Jevy mohou být generovany procesem, který vede k binomickému rozložení, pokud máme pokus, jehož výsledkem je úspěch nebo neúspěch, pokusy jsou nezávislé a mají konstantní pravděpodobnost úspěchu $p$ (konstantní pro všechny pokusy). Obecně platí, že proměnná $X$ pochází z binomického rozložení, kde $X \sim B(n, p)$. $n$ značí počet pokusů a $p$ pravděpodobnost úspěchu. Z definuce je $X$ **diskrétní**. Hustota pravděpodobnosti (PMF, neplést s PDF, které se počítá pro spojité proměnné) se počítá jako $f(x) = \binom{n}{k}p^kq^{n-k}$, kde $k$ je počet úspěchů. **Očekávaná hodnota** se počítá jako $np$ a **rozptyl** jako $np(1-p)$. Binomické rozložení je hojně používaným rozložením k simulovaní mnoha jevů, které nastávají v každodenním životě, např. počet lidí, kteří kliknou na reklamu, počet branek, které padnou z penalt apod. My si ukážeme příklad s počtem reklamací. 
+
+Víme, že zhruba 0.5% zákazníků po zakoupení výrobku žádá do 14 dnů o reklamaci. V minulých 14 dnech naše firma udělala velkou slevovou akci a náš výrobek si zakoupilo 3000 zákazníku. Vedení firmy chce zákazníky uspokojit ihned a proto automaticky posílá nový výrobek. Dostali jste úkol vypočítat, kolik potřebujeme mít na skladě výrobků, abychom uspokojili alespoň 90% zákazníků.  
+
+```{r}
+n <- 3000
+p <- 0.005
+prumer <- p*n
+x <- seq(0, 30, by = 1) 
+pmf <- dbinom(x, size = n, prob = p)  
+
+#mueme pouzit bud funkci plot s type="h" nebo barplot  
+plot(x, pmf, 
+     col = "#1f77b4", 
+     type = "h", lwd = 10, 
+     main = "X~B(3000, 0.005)", xlab = "X", ylab = "f(x)")
+```
+
+
+Všimněte si, že u diskrétní proměnné (narozdíl od spojité) PMA vyjařuje očekávanou pravděpodobnost. Je to proto, že u diskrétní proměnné víme konkrétní počet a nemusíme tak řešit problém s nekonečným možným počtem hodnot $X$. Pokud chceme vypočítat $p(X \le x_i) = 0.90$. V tomto případě tedy víme výslednou pravděpodobnost, ale potřebujeme zjistit hodnotu $x_i$. Takovému požadavku odpovídá hodnota 20. Tento výpočet je zobrazen na grafu dole.  
+```{r}
+q_15 <-qbinom(p = 0.9, size = n, prob = p)
+print(paste0("Počet výrobků, které musí mít firma na skladě, aby uspokojina 90% zákazníků: ", q_15))
+
+plot(x, pmf, 
+     col = "grey", 
+     type = "h", lwd = 10, 
+     main = "X~B(3000, 0.005), p(X <= 20) = 0.9", xlab = "X", ylab = "f(x)")
+lines(x[x <= q_15], pmf[x <= q_15], col = "#1f77b4", type = "h", lwd = 10)
+```
+
+
+#### Normální rozložení
+
+Další rozložení, které si ukážeme je normální rozložení. Toto rozložení vzniká u spojitých proměnných při procesu, kdy není náhodná proměnná nijak ohraničená (nebo jsou její hranice daleko od průměru proměnné). Pokud náhodná proměná $X$ pochází z normálního rozložení, potom platí, že $X \sim N(\mu, \sigma)$. Její PDF se počítá jako $f(x) = \frac{1}{\sigma \sqrt{2\pi}} e^{-\frac{1}{2} (\frac{x - \mu}{\sigma})^2}$. Jak vidno je to poměrně komplikovaná funkce. **Očekávanou hodnotou** tohoto rozložení je aritmetický průměr a **rozptylem** je $\sigma^2$, který jsme počítali na minulém cvičení. Spousta spojitých proměnných v každodenním životě nabývá normálního rozložení, např. výška, váha nebo síla, kterou cyklista vydá při závodě. 
+
+Normální rozložení je symetrické a má velmi užitečné vlastnosti. Jedním z nich je to, že podle směrodatné odchylky dokážeme určit kolik případů bychom a jak daleko bychom očekávali, že budou ležet od průměru. 
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Standard_deviation_diagram.svg/700px-Standard_deviation_diagram.svg.png)
+
+
+My si ukážeme příklad naměřené síly cyklisty. Z tréninkových dat cyklisty víme, že při hodinovém úsilí dokáže vyvinout průměrnou sílu 250W se směrodatnou odchylkou 50W. Jak dlouho můžeme čekat, že dokáže cyklista jet nad 300W při hodinovém závodě? Tuto oblast jsme vybarvili dole v grafu modrou barvou.
+
+```{r}
+x <- seq(50, 450, by = 0.01)
+prumer <- 250
+smerodatna_odchylka <- 50
+#vypocitame pdf
+pdf <- dnorm(x = x, mean = prumer, sd = smerodatna_odchylka)
+
+#vypocitame pravdepodobnost, ze x>300
+p_nad_300W <- round(1-pnorm(300, mean = prumer, sd = smerodatna_odchylka), 2)
+#prevedeme na minuty
+minut <- p_nad_300W * 60
+print(paste0("Nad 300W vydrzi: ", p_nad_300W, 
+             " % hodiny, nebo ", minut ," minut"))
+
+#zobrazime v grafu
+plot(x, pdf, 
+     main = paste0("X~N(250,50), p(X > 300)=", p_nad_300W), 
+     xlab = "W", ylab = "f(x)", 
+     type = "h",
+     col = "grey")
+# pridame modrou oblast
+lines(x[x > qnorm(1-p_nad_300W, mean = prumer, sd = smerodatna_odchylka)], 
+      pdf[x > qnorm(1-p_nad_300W, mean = prumer, sd = smerodatna_odchylka)], 
+     type = "h",
+     col = "#1f77b4")
+```
+
+Různá normální roložení můžeme také standardizovat a to tak, že jejich průměr bude vždy roven 0 a směrodatná odchylka 1. Takovému normálnímu rozložení říkáme standardizované normální rozložení. Standardizaci náhodné proměnné $X$ můžeme provésto pomocí $z_i = \frac{(x_i - \mu)}{\sigma_x}$.
+
+```{r}
+z <- seq(-4, 4, by = 0.01)
+pdf <- dnorm(z, mean = 0, sd = 1)
+plot(z, pdf, main = "X~N(0,1)", type = "l", xlab = "X", ylab = "f(x)")
+```
+
+**Kvantily** rozložení proměnné nám ji rozdělí na $k$ stejně velkých dílů a řeknou nám, v jakém bodě se nachází určité procento hodnot proměnné. Můžeme si je představit jako takové rozšíření mediánu, který nám řekl, v jakém bodě se nacházela 50% proměnné. Kvantily pro určitou hodnotu $p$ se značí jako $Q_p$. Medián se tedy dá označit jako $medián = Q_{0.5}$. Nejčastěji se používají kvartily (4 díly), kvintily (5 dílů) a decily (10 dílů). V příkladě dole ukážeme příklad, kdy je náhodná proměnná rozdělena do různě velkých dílů. Konkrétně si dokážeme, že u standardizovaného normálního rozložení dokážeme určit hodnoty $z$ podle hodnot $p$.  
+```{r}
+#kvantily standardizovaneho normalniho rozlozeni
+#vytvorime si standardizovanou normalne rozlozenou promennou
+z <- rnorm(n = 1e6, mean = 0, sd = 1)
+#tyto p odpovidaji % v prumer -3sd, prumer -2sd, ..., prumer +2sd, prumer+3sd
+p <- c(0.001349898, 0.022750132, 
+       0.158655254, 0.841344746, 0.977249868, 
+       0.998650102)
+# pokud jsme standardizovanou promennou vytvorili spravne kvantily budou zhruba rovne od -3 do 3
+quantile(x = z, probs = p) # kvantily
+```
+
+Ještě si ukážeme, jak bychom mohli stejnou proměnnou rozdělit na 4 stejně velké díly.
+```{r}
+quantile(x = z, probs = c(0,0.25,0.5,0.75,1))
+```
