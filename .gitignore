@@ -1,8 +1,7 @@
-**/data
 **/swirl
 **/test
 **/ukoly
-*.csv
+/mal/cviceni/**/*.csv
 *.sav
 .Rhistory
 .Rproj.user

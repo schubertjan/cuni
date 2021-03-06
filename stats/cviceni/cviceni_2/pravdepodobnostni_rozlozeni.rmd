@@ -19,13 +19,13 @@ knitr::opts_chunk$set(echo = TRUE)
 * normální rozdělení
 
 
-Náhodná proměnná je taková proměnná, jejíž hodnoty byly generovány náhodným procesem. Jako náhodný proces můžeme spoustu věcí:
+Náhodná proměnná je taková proměnná, jejíž hodnoty byly generovány náhodným procesem. Jako náhodný proces můžeme chápat spoustu věcí:
 
 * náhodnost při výběru pozorování (např. náhodný výběr respondentů)
 * nepřesnost měření (např. měření IQ) 
 * náhodou při každém pokusu (např. směr chůze opilého člověka)
 
-Z definice může náhodná proměnná nabývat různých hodnot (jevů). Souhrn těchto různých hodnoty nazýváme rozdělení pravděpodobnosti proměnné. Toto rozdělení nám řekne, s jakou pravděpodobností daný jevy nastane. Typ tohoto pravděpodobnostního rozložení záleží na procesu, který proměnnou vytváří i na typu proměnné. 
+Z definice může náhodná proměnná nabývat různých hodnot (jevů). Souhrn těchto různých hodnot nazýváme rozdělení pravděpodobnosti proměnné. Toto rozdělení nám řekne, s jakou pravděpodobností daný jevy nastane. Typ tohoto pravděpodobnostního rozložení záleží na procesu, který proměnnou vytváří i na typu proměnné. 
 
 
 ![](/home/schubertj/cuni/stats/cviceni/cviceni_2/schema.png)
