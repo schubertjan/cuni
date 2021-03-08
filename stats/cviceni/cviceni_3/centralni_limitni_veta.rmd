@@ -1,0 +1,33 @@
+---
+title: "Centrální limitní věta a interval spolehlivosti"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Klíčové pojmy:
+
+* Zákon velkých čísel
+* Centrální limitní věta
+* Inference
+* Bodový odhad
+* Interval spolehlivosti
+
+
+### Zákon velkých čísel
+
+My jsme zákon velkých čísel používali intuitivně užv minulém semestru. Zákon velkých čísel říká, že průměr velkého počtu pozorování (výsledků pokusů) se bude limitně přibližovat očekávané hodnotě, neboli $\overline{X_n} = \frac{1}{n}\sum_{i=1}^{n} X_i$ $\overline{X_n} \to \mu$, pokud $n \to \infty$. Pojďme si to ukázat na příkladu hodu kostkou. Očekávaná hodnota hodu kostkou je $E(X) = \frac{(a+b)}{2}$. 
+
+```{r}
+a <- 1
+b <- 6
+ocekavana_hodnota <- (a+b)/2
+
+# 10 hodů
+n <- 10
+kostka <- c(1:6)
+hody_n10 <- sample(kostka, size = 10, replace = TRUE)
+prumer_n10 <- mean(hody_n10)
+```
