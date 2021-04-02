@@ -1,0 +1,248 @@
+---
+title: "Statistické testování"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
+```
+
+### Klíčové pojmy
+
+
+* co je to nulová a alternativní hypotéza
+* oboustranná/pravo/levostranná alternativní hypotéza
+* testovací statistika
+* standardní chyba testovací statistiky
+* postup při realizaci testu: zvolení testu, $H_0$, $H_1$, testovací statistika, výsledek
+* t-rozdělení
+* jednovýběrový z-test pro průměr
+* jednovýběrový t-test pro průměr
+* p-hodnota
+* chyba I. a II. druhu,
+* síla testu
+
+
+### Studentovo t-rozdělení
+
+Než se pustíme do statistických testů, podíváme se na speciální případ normálního rozložení. Jak víme z centrální limitní věty, výběrové statistiky začnou nabývat normálního rozložení a my můžeme použít výběrovou směrodatnou odchylku $s$ jako odhad populační směrodatné odchylky (kterou většinou neznáme). Co když se ale náš výběr skládá ze 3 pozorování? Můžeme stále použít směrodatnou odchylku těchto 3 pozorování jako odhad populační? Asi cítíme, že pokud je počet pozorování v našem výběru malý, bude i náš odhad méně přesný. Tato skutečnost je zohledněna v *t rozložení*, které je vlastně speciálním typem normálního rozložení. Jako parametry má stále průměr $mu$ a směrodatnou odchylku $sigma$, ale je tu ještě další parametr, stupně volnosti $\nu$ (degrees of freedom). Stupně volnosti rozložení se počítají jako $\nu = n-1$. Čím menší počet stupňů volnosti, tím je rozložení více rozplácnuto do stran. To odpovídá menší jistotě o tom, jakých hodnot bude naše náhodná proměnná nabývat. Pojďme si ukázat jak se liší od normálního rozložení.
+
+```{r}
+n <- 5
+stupne_volnosti <- n-1
+x <- seq(-4,4,by = 0.01)
+pdf_n <- dnorm(x = x, mean = 0, sd = 1)
+pdf_t <- dt(x = x, df = stupne_volnosti)
+
+plot(x, pdf_n, type = "l", ylab = "f(x)", xlab = "X", main = "Rozdíl mezi normálním a studentovým rozdělením", lwd = 2)
+lines(x, pdf_t, col = "red", lwd = 2)
+legend("topright",c("N~(0,1)", "T~(0,1,4)"), col = c("black", "red"), lwd = c(2,2))
+```
+Zkuste změnit počet stupňů volnosti. Při jakém počtu s.v se blíží t-rozdělení normálnímu?
+
+
+To tedy znamená, že vetší procento případů se nachází na levé a pravé straně rozložení. Pokud bychom měli pro příklad nahoře vypočítat interval spolehlivosti na hladině spolehlivosti 89%, nahradíme ve vzorečku $IS_{0.89} = \overline{x} +/- z \frac{s}{\sqrt{n}}$ hodnotu $z$ za hodnotu $t$, tedy $IS_{0.89} = \overline{x} +/- t \frac{s}{\sqrt{n}}$. Pojďme si ukázat, jak bychom tento výpočet provedli a porovnejme ho k výpočtu za předpokladu normálního rozložení výběrového průměru.
+```{r}
+vyberovy_prumer <- 41
+smerodatna_odchylka <- 22
+smerodatna_chyba <- smerodatna_odchylka / sqrt(n)
+
+# interval spolehlivosti = prumer +/- * t * smerodatna_chyba
+# hladina spolehlivost = 95%
+alpha <- 0.11
+t <- qt(c(0.11/2, 1-0.11/2), df = stupne_volnosti)
+z <- qnorm(c(0.11/2, 1-0.11/2))
+is_t <- vyberovy_prumer + t * smerodatna_chyba
+is_z <- vyberovy_prumer + z * smerodatna_chyba
+
+print(paste0("Interval spolehlivosti na hladine spolehlivosti: ", 1-alpha, " při ", stupne_volnosti, " stupňů volnosti je: ", paste0(round(is_t, 2), collapse = "-")))
+print(paste0("Interval spolehlivosti na hladine spolehlivosti: ", 1-alpha, " je: ", paste0(round(is_z, 2), collapse = "-")))
+```
+
+
+### Statistické testování
+
+Statistické testování zahrnuje soubor různých testů podle probému, který se snažíme vyřešit a podle proměnné, kterou používáme. My si v tomto cvičení na příkladu jednovýběrového t-testu pro průměr ukážeme principy statistického testování, které platí i pro další typy statistických testů. Každý statistický test má 4 fáze:
+
+1. zvolení testu podle výzkumné otázky a typu dat, 
+2. formulace nulové $H_0$ a alternativní $H_1$ hypotézy, 
+3. výpočet testovací statistiky
+4. interpretace výsledku
+
+
+#### 1. Zvolení testu
+
+Pro toto cvičení budeme používat jednovýběrový t-test pro průměr. Tedy, budeme testovat hodnotu průměru jednoho výběru. Bude nás zajímat průměrná doba, kterou dospělí jedinci v České republice stráví denně na internetu (v minutách). Následující data pocházejíz European Social Study, která byla provedena v roce 2018 *https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/int_use.csv*. První sloupec obsahuje id respondenta a druhý počet minut kolik strávil denně na internetu. Pojďme se podívat na data.
+```{r}
+ess <- read.csv("https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/int_use.csv")
+summary(ess)
+# odstranit chybejici hodnoty
+ess_bez_na <- ess[!is.na(ess$int_use_day_mins), ]
+```
+
+#### 2. Formulace nulové a alternativní hypotézy
+
+V této fázi formulujeme nulovou a alternativní hypotézu na základě naší výzkumné otázky. Tyto hypotézy formulujeme **vždy před výpočtem testovací statistiky**. Technicky nám nic nebrání počítat různé testovací statistiky a poté vybrat tu, která vychází zajímavě, ale tímto způsobem se rychle dostaneme do nebezpečné situace. Statistické testy neslouží k objevování vztahů a proto by se tak neměli používat! My si ukážeme 3 různé nulové hypotézy, abychom si ukázali rozdíl mezi dvojstranným, levostranným a pravostranným testem. Ve Vašem výzkumu si ale vyberete pouze takovou hypotézu, které odpovídá Vaší výzkumné otázka (a která vychází z vědecké teorie).    
+
+
+**Dvojstranná hypotéza**
+
+$H_0 = 180$
+
+$H_1 \neq 180$
+
+
+**Levostranná hypotéza**
+
+$H_0 \ge 180$
+
+$H_1 < 180$
+
+
+**Pravostranná hypotéza** 
+
+$H_0 \le 180$
+
+$H_1 > 180$
+
+
+#### 3. Výpočet testovací statistiky
+
+Výpočet testovací statistiky bude záležet na tom, který test zvolíme. Různé testy májí různé testovací statistiky a proto je důležité u zvoleného testu porozumět tomu, jakou testovací statistiku počítáme. Obecně ale platí, že každá testovací statistika se vypočítá jako $testovaci\;statistika = \frac{bodovy\;odhad - nulova\;hypoteza}{smerodatna\;chyba\;odhadu}$
+
+
+V našem případě jednovýběrového t-testu pro průměr je naší testovací statistikou t-skór. T-skór vypočítáme jako $t = \frac{\overline{x} - \mu_0}{\frac{s}{\sqrt{N}}}$, kde $\overline{x}$ je náš výběrový průměr, $\mu_0$ je hodnota z nulové hypotézy a $\frac{s}{\sqrt{N}}$ je směrodatná chyba odhadu. Výběrový průměr spočítáme snadno a směrodatnou chybu odhadu výběrového průměru známe z centrální limitní věty a intervalů spolehlivosti. Testovací statistiku $t$ budeme počítat s $n-1$ stupni volnosti.
+```{r}
+# testovaci_statistika = bodovy_odhad - nulova_hypoteza / smerodatou_chyba_odhadu
+bodovy_odhad <- mean(ess_bez_na$int_use_day_mins)
+nulova_hypoteza <- 180
+n <- nrow(ess_bez_na)
+smerodatou_chyba_odhadu <- sd(ess_bez_na$int_use_day_mins) / sqrt(n)
+testovaci_statistika <- (bodovy_odhad - nulova_hypoteza) / smerodatou_chyba_odhadu
+
+print(paste0("Hodnota testovací statistiky je: ", round(testovaci_statistika, 3)))
+```
+
+
+U každého statistického testu si zvolíme nějakou kritickou mez, která je určení hladinou pravděpodobnosti $\alpha$. $\alpha$ nám udává pravděpodobnost, že nesprávně zamítneme nulovou hypotézu. Konvenčně se udává hladina $\alpha = 0.05$, ale my si zvolíme nějakou jinou, například $\alpha=0.11$, abychom si ukázali, že tato hladina je do jisté míry arbitrární a záleží na více věcech (jako je síla testu, typ chyby, kterou chcete akceptovat - I.druhu vs II.druhu). Protože t-skór pochází ze studentova t standardního rozložení s $n-1$ stupni volnosti, můžeme ho vypočítat pomocí funkcí, které již známe (stejně jako jsme určovali u intervalů spolehlivosti). Kritická mez bude záležet na typu nulové a alternativní hypotézy. Pojďme si ukázat, jak bude kritická mez vypadat na grafu rozložení testovací statistiky za předpokladu $H_0$. Zároveň si do grafu zakreslíme hodnotu naší testovací statistiky.
+
+
+#### 4. Interpretace výsledku
+
+```{r}
+alpha <- 0.11
+kritickou_mez_levostranny <- qt(alpha, df = n-1)
+x <- seq(-4,4,by=0.001)
+pdf <- dt(x, df = n-1)
+
+# levostranna
+plot(x, pdf, 
+     xlab = "Výběrový průměr", 
+     ylab = "f(x)", 
+     main = "Rozdělení výběrového průměru za platnosti H0: levostranný",
+     type = "l")
+for(i in 1:length(x)) {
+  if(x[i] < kritickou_mez_levostranny) {
+    # pridame region, kde zamitame H0
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01),
+          lwd = 2)
+  }
+}
+abline(v = kritickou_mez_levostranny, col = "red")
+abline(v = testovaci_statistika, lty = 2)
+
+# pravostrannou
+kritickou_mez_pravostranny <- qt(1-alpha, df = n-1)
+plot(x, pdf, 
+     xlab = "Výběrový průměr", 
+     ylab = "f(x)", 
+     main = "Rozdělení výběrového průměru za platnosti H0: pravostranný",
+     type = "l")
+for(i in 1:length(x)) {
+  if(x[i] > kritickou_mez_pravostranny) {
+    # pridame region, kde zamitame H0
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01),
+          lwd = 2)
+  }
+}
+abline(v = kritickou_mez_pravostranny, col = "red")
+abline(v = testovaci_statistika, lty = 2)
+
+# oboustranny
+kritickou_mez_oboustranny <- qt(c(alpha/2, 1-alpha/2), df = n-1)
+plot(x, pdf, 
+     xlab = "Výběrový průměr", 
+     ylab = "f(x)", 
+     main = "Rozdělení výběrového průměru za platnosti H0: oboustranný",
+     type = "l")
+for(i in 1:length(x)) {
+  if((x[i] < kritickou_mez_oboustranny[1]) | 
+     (x[i] > kritickou_mez_oboustranny[2])) {
+    # pridame region, kde zamitame H0
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01),
+          lwd = 2)
+  }
+}
+abline(v = kritickou_mez_oboustranny, col = "red")
+abline(v = testovaci_statistika, lty = 2)
+```
+Červená vertikální přímka značí kritickou mez, za kterou bychom zamítali $H_0$. Červený region pak značí region, kde zamítáme $H_0$. Pokud se testovací statistika nachází v tomto regionu, zamítáme $H_0$ ve prospěch $H_1$. V opačném případě $H_0$ zamítnout nemůžeme.
+
+
+Při oboustranné hypotéze: $H_0 = 180$ a tedy $H_1 \neq 180$, je kritické mez +/- 1.72. Naše testovací statistika má hodnotu -1.699 a není tedy menší než kritické mez. V takovém případě bychom **nezamítali** $H_0$ ve prospěch $H_1$.
+
+
+Při levostranné hypotéze: $H_0 \ge 180$ a $H_1 < 180$ je kritické mez -1.29. Testovací statistika je menší než tato kritická hodnota a my proto **zamítáme** $H_0$ ve prospěch $H_1$.
+
+
+Při pravostranné hypotéze: $H_0 \le 180$ a $H_1 > 180$ je kritické mez 1.29. Testovací statistika je menší než tato kritická hodnota a my proto **nezamítáme** $H_0$ ve prospěch $H_1$. 
+
+Abychom nemuseli stále počítat hodnoty kritické meze, které se mohou lišit v závislosti na rozložení výběrové statistiky a chybě prvního druhu ($alpha$), používá se tzv p-hodnota, což vyjadřuje pravděpodobnost, že uvidíme pozorovanou hodnotu nebo ještě extrémnější (za předpokladu $H_0$). P-hodnotu můžeme vypočítat jako distribuční funkci (CDF) podle toho, jaký typ $H_0$ jsme zvolili.
+```{r}
+p_hodnota_levostranny <- pt(testovaci_statistika, df = n-1)
+p_hodnota_pravostranny <- 1-pt(testovaci_statistika, df = n-1)
+p_hodnota_oboustrany <- (1-pt(abs(testovaci_statistika), df = n-1)) * 2
+
+print(paste0("P-hodnota levostranného testu při alpha: ", alpha, " je: ", round(p_hodnota_levostranny, 3)))
+print(paste0("P-hodnota pravostranného testu při alpha: ", alpha, " je: ", round(p_hodnota_pravostranny, 3)))
+print(paste0("P-hodnota oboustranného testu při alpha: ", alpha, " je: ", round(p_hodnota_oboustrany, 3)))
+```
+
+Vidíme, že hodnota p je menší, než zvolená $\alpha$ pouze u levostranného testu, takže bychom zde zamítli $H_0$ ve prospěch $H_1$. Jak vidíme, výsledek se shoduje s porovnáním testovací statistiky k vypočetené kritické hladině. Výhodou je, že můžeme výpočet kritické hladiny přeskočit, rovnou vypočítat p-hodnotu a porovnat k námi zvolené $\alpha$.
+
+Pokud byste chtěli počítat jednovýběrový z-test pro průměr místo t-testu, pouze nahradíte rozložení výběrového průměru za normální rozložení (z-test ještě dále předpokládá, že známe populační rozptyl \sigma). V praxi ale můžete použít t-test, protože víme, že při vetším počtu pozorování ($n>30$) se t-rozdělení velmi podobá normálnímu
+
+V R existuje na vypočítání t-testu funkce `t.test`. Podívejme se na nápovědu, abychom porozuměli jednotlivým argumentům `?t.test`. Pojďme si ukázat, jak bychom vypočítali všechny 3 hypotézy.
+```{r}
+t_test_levostranna <- t.test(ess_bez_na$int_use_day_mins, 
+                             alternative = "less", 
+                             conf.level = 1-alpha,
+                             mu = nulova_hypoteza)
+t_test_pravostranny <- t.test(ess_bez_na$int_use_day_mins, 
+                             alternative = "greater", 
+                             conf.level = 1-alpha,
+                             mu = nulova_hypoteza)
+t_test_oboustranny <- t.test(ess_bez_na$int_use_day_mins, 
+                             alternative = "two.sided", 
+                             conf.level = 1-alpha,
+                             mu = nulova_hypoteza)
+```
+Pro každý test si porovnejte hodnotu testovací statistiky, počtu stupňů volnosti (df) a p-hodnotu s výpočty, které jsme provedli nahoře.
+
+
+### Síla testu
+Statistické testování nám prozradí pouze směr účinku naší hypotézy, nikoliv však její sílu. K tomu nám slouží Cohenovo d. Vypočítá se jako $d = \frac{(bodovy\;odhad - H_0)}{smerodatna\;odchylka}$. Obecně se udává následující síly účinku pro hodnoty $d$:
+
+
+|< 0.2 | 0.2 - 0.5 | 0.5 - 0.8 | 0.8 - 1.2 | > 1.2
+|------|------|------|------|------|
+|velmi malý|malý efekt|střední efekt|velký efekt|velmi velky|
+
+Pro náši úlohu by se $d$ vypočítalo jako:
+```{r}
+d = (bodovy_odhad - nulova_hypoteza) / sd(ess_bez_na$int_use_day_mins)
+print(paste0("Cohenova d je: ", round(d, 3)))
+```
