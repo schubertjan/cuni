@@ -1,0 +1,303 @@
+---
+title: "T-test pro 2 výběry"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
+```
+
+Klíčové pojmy:
+
+* t-test pro 2 výběry  
+* nezávislé/závislé výběry
+* sdružený rozptyl
+
+
+### T-test pro 2 výběry
+Doposud jsme si ukazovali t-test pro jeden průměr, tedy testovali jsme hypotézu o populačním výběru. Dnes si ukážeme další 3 statistické testy, všechny nám budou sloužit k tomu, abychom mohli udělat inferenci o 2 průměrech v populaci $\mu_1$ a $\mu_2$, respektive o jejich rozdílu. Máme tedy situaci, kdy chceme zjistit průměr nějaké proměnné ve 2 skupinách. Nulová hypotéza oboustranného testu $H_0$ tedy bude $H_0: \mu_1=\mu_2$, nebo jinak $H_0: \mu_1 - \mu_2 = 0$. Alternativní hypotéza $H_1$ takového testu by byla $H_1: \mu_1-\mu_2 \neq 0$. Stejně jako u jednovýběrového t-testu můžeme určit levo/pravostranné alternativní hypotézy. Tedy, $H_0: \mu_1-\mu_2 \ge 0$ a $H_1: \mu_1-\mu_2 < 0$ pro levostrannou hypotézu a $H_0: \mu_1-\mu_2 \le 0$ a $H_1: \mu_1-\mu_2 > 0$ pro pravostrannou hypotézu. Nemusíme samozřejmě testovat hypotézu, že rozdíl je roven 0, ale můžeme určit jakoukoliv jinou testovanou hodnotu rozdílu. Z hlediska zvolení testu jsou důležité následující předpoklady:
+
+* velikost testovaných skupin
+* zda očekáváme stejný rozptyl u testovaných skupin
+* zda jsou skupiny závislé/nezávislé
+
+Pokud je velikost v testovaných výběrech < 30, tedy $n_1 <30$ nebo $n_2<30$, předpokládáme, že sledovaná proměnná je v populaci normálně rozdělena. 
+
+
+### Stejné rozptyly u obou skupin
+Jako první si ukážeme příklad, kdy mají obě skupiny v populaci stejný rozptyl. V takovém případě vypočítáme sdružený rozptyl $s_p^2$ jako $s_p^2=\frac{(n_1 - 1)s_1^2 + (n_2-1)s_2^2}{n_1+n_2-2}$. Tento sdružený rozptyl představuje odhad společného rozptylu obou skupin v populaci (protože předpokládáme, že jsou rozptyly v obou skupinách stejné). Směrodatnou chybu rozdílu mezi průměry $s_\overline{d}$ pak vypočítáme jako $s_\overline{d}=\sqrt{\frac{s_p^2}{n_1} + \frac{s_p^2}{n_2}}$. Počet stupňů volnosti vypočítáme jako $s.v=n_1+n_2-2$. Pojďme si nyní tento test představit na příkladu. Následující data *https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/viral_load.csv* pochází z klinické studie provedené na kontrolní (`group=0`) a experimentální skupině (`group=1`). Testuje se účinnost léku a tato účinost se měří jako počet virových částic ve vzorku. Nás zajímá, zda je počet těchto částic menší v experimentální skupině. Předpokládáme přitom, že počet částic viru ve vzorku má v obou skupinách stejný rozptyl. Budeme tedy uvažovat následující hypotézy:
+
+$H_0: \mu_{kontrolni} - \mu_{experimentalni} \le 0$
+
+$H_1: \mu_{kontrolni} - \mu_{experimentalni} > 0$
+
+Budeme přitom uvažovat chybu I. druhu $\alpha=0.01$.
+```{r}
+dats <- read.csv("https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/viral_load.csv")
+# zkontrolujeme naše data
+head(dats)
+# mame dostatecny pocet pripadu v obou skupinach?
+t <- table(dats$group)
+print(t)
+# ulozime si rovnou velikosti skupin
+n_1 <- t[1]
+n_2 <- t[2]
+n <- sum(t)
+```
+
+Podívejme se na výběrové průměry v obou skupinách. Vidíme, že v našem výběru je větší počet vir   ových částic v kontrolní skupině. Pojďme nyní provést statistický test, abychom zjistili, zda rozdíl, který vidíme ve výběrech můžeme očekávat i v populaci, nebo zda se jedná o náhodu.
+```{r}
+aggregate(viral_particles ~ group, data=dats, FUN=mean)
+```
+
+```{r}
+# vyberove rozptyly
+s2_1 <- var(dats$viral_particles[dats$group ==0]) 
+s2_2 <- var(dats$viral_particles[dats$group ==1])
+# sdruzeny rozptyl
+s2_p <- ((n_1-1) * s2_1 + (n_2-1) * s2_2 )/ (n_1 + n_2 - 2)
+# smerodatna chyba rozdilu
+s_d <- sqrt(s2_p / n_1 + s2_p / n_2) 
+# vyberovy rozdil mezi prumery
+d <- mean(dats$viral_particles[dats$group ==0])  - mean(dats$viral_particles[dats$group ==1])
+# stupne volnosti
+s_v <- n - 2
+# nulova hypoteza
+h0 <- 0
+# testovaci statistika
+t <- (d - h0) / s_d
+# chyba prvniho druhu
+alpha <- 0.01
+# kriticka mez
+kriticka_mez <- qt(1-alpha, df = s_v)
+# vypocitame p hodnotu
+p <- 1-pt(t, df = s_v)
+```
+
+Pojďme si ukázat výběrové rozložení testovací statistiky (rozdílu $d$) za předpokladu nulové hypotézy.
+```{r}
+x <- seq(-4,4,by=0.001)
+pdf <- dt(x, df = s_v)
+
+plot(x, pdf, 
+     xlab = "Výběrové rozdíl", ylab = "f(x)", 
+     main = "Rozložení rozdílu za předpokladu H0",
+     sub = paste0("p-hodnota: ", round(p, 3), " při alpha=", alpha),
+     type = "l")
+abline(v = kriticka_mez, col = "red")
+# oblast zamitnuti H0
+for(i in c(1:length(x))) {
+  if(x[i] > kriticka_mez) {
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01))
+  }
+}
+abline(v = t, lty = 2)
+legend("topleft", 
+       c("kritická mez", "testovací statistika"), 
+       col = c("red", "black"), 
+       lty = c(1,2))
+```
+
+Jak vidno z hodnoty testovací statistiky oproti kritické mezi a z p-hodnoty, nemůžeme zamítnout $H_0: \mu_{kontrolni} - \mu_{experimentalni} \le 0$ ve prospěch $H_1: \mu_{kontrolni} - \mu_{experimentalni} > 0$, tedy neexistuje dostatečná evidence na to, abychom usoudili, že lék pomáhá snížit počet virových částic ve vzorku.
+
+
+K výpočtu můžeme použít i funkci `t.test`. Následující kód ukazuje, jak bychom mohli provést dvouvýběrový t-test průměru pro nezávislé skupiny a stejné rozptyly.
+```{r}
+t.test(viral_particles ~ group, 
+       data = dats, 
+       alternative = "greater", 
+       conf.level = 0.99, mu = 0, 
+       var.equal = TRUE,
+       paired = FALSE)
+```
+
+
+Cohenovo d můžeme vypočítat jako $d = \frac{|bodovy\;odhad - nulova\;hypoteza|}{smerodatna\;odchylka}$.
+```{r}
+cohenovo_d <- abs(d - 0)/sqrt(s2_p)
+print(paste0("Cohenovo d je: ", round(cohenovo_d, 1)))
+```
+|< 0.2 | 0.2 - 0.5 | 0.5 - 0.8 | 0.8 - 1.2 | > 1.2
+|------|------|------|------|------|
+|velmi malý|malý efekt|střední efekt|velký efekt|velmi velky|
+
+
+
+### Rozdílné rozptyly u skupin
+Pokud nemůžeme předpokládat stejný rozptyl u skupin v populaci, nemůžeme vypočítat sdružený rozptyl. Rozptyly ve skupinách neslučujeme. Směrodatnou chybu rozdílů průměrů vypočítáme jako  $s_\overline{d}=\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}$. Počet stupňů volnosti vypočítáme jako $s.v=\frac{(\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2})^2}{\frac{s_1^4}{n_1^2(n_1-1)}\frac{s_2^4}{n_2^2(n_2-1)}}$. Jako příklad tohoto testu si ukážeme data ze silničních cyklistických závodů. Zajímá nás, zda jsou náročnější etapové závody (závody, které se jedou několik dní po sobě) nebo jednodenní závody (které se jedou pouze jeden den). Obtížnost budeme měřit podle toho, kolik cyklistů závod nedokončilo. Data jsou dostupná zde *https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/cyklo_zavody.csv*.
+```{r}
+dats <- read.csv("https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/cyklo_zavody.csv")
+#podivame se na data
+head(dats)
+```
+
+Protože nemáme představu o směru rozdílu. Formulujeme nulovou a alternativní hypotézu jako:
+
+$H_0: \mu_{etapove} - \mu_{jednodenni} = 0$ a
+
+$H_1: \mu_{etapove} - \mu_{jednodenni} \ne 0$
+
+```{r}
+aggregate(pocet_nedokoncilo ~ typ_zavodu, data = dats, FUN = mean)
+```
+Vidíme, že v našem výběru v průměru nedokončilo více závodníků jednodenní závody. Pojďme se podívat zda je tento rozdíl způsoben náhodou.
+
+```{r}
+# velikosti skupin
+t <- table(dats$typ_zavodu) # velikosti ve skupinach jsou male predpokladame normalni rozlozeni promenne v populaci
+n_1 <- t[1]
+n_2 <- t[2]
+# vyberove rozptyly 
+s2_1 <- var(dats$pocet_nedokoncilo[dats$typ_zavodu == "etapovy"])
+s2_2 <- var(dats$pocet_nedokoncilo[dats$typ_zavodu == "jednodenni"])
+#vyberovy rozdil
+d <- mean(dats$pocet_nedokoncilo[dats$typ_zavodu == "etapovy"]) - mean(dats$pocet_nedokoncilo[dats$typ_zavodu == "jednodenni"])
+# smerodatna chyba rozdilu
+s_d <- sqrt(s2_1/n_1 + s2_2/n_2)
+
+#pocet stupnu volnosti
+s_v <- (s2_1/n_1 + s2_2/n_2)^2 / ((s2_1^2 / (n_1^2*(n_1-1))) + (s2_2^2 / (n_2^2 * (n_2-1))))
+
+# nulova hypoteza
+h0 <- 0
+# testovaci statistika
+t <- (d - h0) / s_d
+# chyba prvniho druhu
+alpha <- 0.05
+# kriticka mez
+kriticka_mez <- qt(c(alpha/2, 1-alpha/2), df = s_v)
+# vypocitame p hodnotu
+p <- (1-pt(abs(t), df = s_v)) * 2
+```
+
+```{r}
+x <- seq(-4,4,by=0.001)
+pdf <- dt(x, df = s_v)
+
+plot(x, pdf, 
+     xlab = "Výběrové rozdíl", ylab = "f(x)", 
+     main = "Rozložení rozdílu za předpokladu H0",
+     sub = paste0("p-hodnota: ", round(p, 3), " při alpha=", alpha),
+     type = "l")
+abline(v = kriticka_mez[1], col = "red")
+abline(v = kriticka_mez[2], col = "red")
+# oblast zamitnuti H0
+for(i in c(1:length(x))) {
+  if((x[i] < kriticka_mez[1]) | (x[i] > kriticka_mez[2])) {
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01))
+  }
+}
+abline(v = t, lty = 2)
+legend("topleft", 
+       c("kritická mez", "testovací statistika"), 
+       col = c("red", "black"), 
+       lty = c(1,2))
+```
+
+
+Stejně tak můžeme následující příklad vypočítat pomocí funkce `t.test`.
+```{r}
+t.test(pocet_nedokoncilo ~ typ_zavodu, 
+       data = dats,
+       alternative = "two.sided", 
+       mu = 0, 
+       var.equal = FALSE, 
+       paired = FALSE, 
+       conf.level = 1-alpha)
+```
+
+
+Sílu testu vypočítáme opět podle známého vzorce.
+```{r}
+cohenovo_d <- abs(d - 0)/sqrt((s2_1 + s2_2) / 2)
+print(paste0("Cohenovo d je: ", round(cohenovo_d, 1)))
+```
+|< 0.2 | 0.2 - 0.5 | 0.5 - 0.8 | 0.8 - 1.2 | > 1.2
+|------|------|------|------|------|
+|velmi malý|malý efekt|střední efekt|velký efekt|velmi velky|
+
+
+### Párový t-test
+Doposud jsme pracovali s předpokladem, že pozorování v obou skupinách jsou nezávislá. Teď si ukážeme příklad statistického testu rozdílu průměrů, který můžeme použít, pokud jsou naše skupiny závislé. Protože máme stejná pozorování, můžeme vypočítat u každého rozdíl $d_i$ jako $d_i=x_i - y_i$. Směrodatnou chybu vypočítáme jako $s_\overline{d} = \frac{s_d}{\sqrt{n}}$, kde $s_d$ je směrodatná chyba rozdílu. Počet stupňů volnosti vypočítáme jako $s.v = n-1$. Jako příklad si ukážeme data z výzkumu trhu. 20 respondentů bylo dotázáno, na jaké značky si vzpomenou. Poté jim bylo ukázáno několik reklam. Po 2 dnech byli stejní respondenti dotázáni opět na značky, které si pamatují. Data můžete načíst odsud *https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/ads.csv*. Sloupec `pre` označuje počet značek, které si respondent zapamatoval. `post` vyjadřuje počet značek, které si zapamatoval poté, co mu byly ukázány reklamy. Bude nás zajímat, zda reklamy, které respondent viděl měli pozitivní vliv na počet značek, na které si respondent vzpoměl.
+
+$H_0: \mu_{post} - \mu_{pre} \le 0$
+
+$H_1: \mu_{post} - \mu_{pre} > 0$
+
+Budeme přitom uvažovat chybu I.druhu $\alpha = 0.05$.
+
+Nejdříve se podíváme na rozdíl 
+```{r}
+dats <- read.csv("https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/ads.csv")
+
+colMeans(dats[, c("pre", "post")])
+```
+
+
+```{r}
+#vypocitame rozdil
+d <- dats$post - dats$pre
+# pocet pozorovani
+n <- nrow(dats)
+#pocet stupnu volnosti
+s_v <- n-1
+# smerodatna chyba odhadu
+s_d <- sd(d) / sqrt(n)
+
+# nulova hypoteza
+h0 <- 0
+# testovaci statistika
+t <- (mean(d) - h0) / s_d
+# chyba prvniho druhu
+alpha <- 0.05
+# kriticka mez
+kriticka_mez <- qt(1-alpha, df = s_v)
+# vypocitame p hodnotu
+p <- 1-pt(t, df = s_v)
+```
+
+```{r}
+x <- seq(-4,4,by=0.001)
+pdf <- dt(x, df = s_v)
+
+plot(x, pdf, 
+     xlab = "Výběrové rozdíl", ylab = "f(x)", 
+     main = "Rozložení rozdílu za předpokladu H0",
+     sub = paste0("p-hodnota: ", round(p, 3), " při alpha=", alpha),
+     type = "l")
+abline(v = kriticka_mez, col = "red")
+# oblast zamitnuti H0
+for(i in c(1:length(x))) {
+  if(x[i] > kriticka_mez) {
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01))
+  }
+}
+abline(v = t, lty = 2)
+legend("topleft", 
+       c("kritická mez", "testovací statistika"), 
+       col = c("red", "black"), 
+       lty = c(1,2))
+```
+
+
+Stejně tak můžete tento test vypočítat pomocí funkce `t.test`.
+```{r}
+#nejdrive musime data trochu upravit, abychom je mohli pouzit
+## musime vytvorit jeden vektor
+y <- c(dats$pre, dats$post)
+## a pote vektor, ktery bude znacit do jake skupiny porozovani patri (1=pre), (0=post)
+x <- c(rep(1, n), rep(0, n))
+t.test(y ~ x, alternative = "greater", mu = 0, paired = TRUE, conf.level = 0.05)
+```
+
+Sílu testu vypočítáme opět podle známého vzorce.
+```{r}
+cohenovo_d <- abs(mean(d) - 0)/sd(d)
+print(paste0("Cohenovo d je: ", round(cohenovo_d, 1)))
+```
+|< 0.2 | 0.2 - 0.5 | 0.5 - 0.8 | 0.8 - 1.2 | > 1.2
+|------|------|------|------|------|
+|velmi malý|malý efekt|střední efekt|velký efekt|velmi velky|

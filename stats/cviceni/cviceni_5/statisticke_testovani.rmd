@@ -234,7 +234,7 @@ Pro každý test si porovnejte hodnotu testovací statistiky, počtu stupňů vo
 
 
 ### Síla testu
-Statistické testování nám prozradí pouze směr účinku naší hypotézy, nikoliv však její sílu. K tomu nám slouží Cohenovo d. Vypočítá se jako $d = \frac{(bodovy\;odhad - H_0)}{smerodatna\;odchylka}$. Obecně se udává následující síly účinku pro hodnoty $d$:
+Statistické testování nám prozradí pouze směr účinku naší hypotézy, nikoliv však její sílu. K tomu nám slouží Cohenovo d. Vypočítá se jako $d = \frac{|(bodovy\;odhad - H_0)|}{smerodatna\;odchylka}$. Obecně se udává následující síly účinku pro hodnoty $d$:
 
 
 |< 0.2 | 0.2 - 0.5 | 0.5 - 0.8 | 0.8 - 1.2 | > 1.2
@@ -243,6 +243,6 @@ Statistické testování nám prozradí pouze směr účinku naší hypotézy, n
 
 Pro náši úlohu by se $d$ vypočítalo jako:
 ```{r}
-d = (bodovy_odhad - nulova_hypoteza) / sd(ess_bez_na$int_use_day_mins)
+d = abs(bodovy_odhad - nulova_hypoteza) / sd(ess_bez_na$int_use_day_mins)
 print(paste0("Cohenova d je: ", round(d, 3)))
 ```

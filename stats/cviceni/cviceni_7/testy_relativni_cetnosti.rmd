@@ -1,0 +1,171 @@
+---
+title: "Statistické testy pro relativní četnost"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
+set.seed(42)
+```
+
+Klíčové pojmy:
+
+* test pro porovnání jednoho/dvou relativních četností
+* rozptyl relativní četnosti
+* směrodatná chyba relativní četnosti
+* rozdíl relativních četností
+
+
+Doposud jsme se zabývali statistickými testy, které se používají na porovnání jednoho/dvou výběrových průměrů. V tomto cvičení si ukážeme, jaké statistické testy můžeme použít pro porovnání výběrových relativních četností. 
+
+### Test pro jednu relativní četnost
+Výběrová relativní četnost $\hat{P}_n$ approximuje normální rozložení $\hat{P}_n \sim N(p, \frac{p(1-p)}{n})$ , pokud platí, že $n\hat{p} > 10$ a zároveň $n(1-\hat{p})>10$. To znamená, že můžeme aplikovat vlastnosti centrální limitní věty. Pojďme si tuto skutečnost ukázat.
+
+```{r}
+# populacni relativni cetnost
+p <- 0.15
+n <- 1000
+# opakujme 10 000x vybery o velikosti 1000 z teto populace
+n_p_hat <- rbinom(n=10000, size = n, prob = p)
+
+hist(n_p_hat/n, 
+     xlab = "p_hat", 
+     ylab = "Černost", 
+     main = "Rozdělení výběrové relativní četnosti", 
+     xlim = c(0.11, 0.19))
+
+x <- seq(0.11,0.19,by=0.001)
+pdf <- dnorm(x, mean = p, sd = sqrt(p*(1-p) / n))
+# nova osa
+par(new = TRUE)
+plot(x, 
+     pdf, 
+     xlab = "", ylab = "", main = "", 
+     bty = "n", axes = FALSE, 
+     type = "l", 
+     col = "red", 
+     lwd = 2)
+
+legend("topright", legend = c("N~(p, sqrt(p(1-p)/n)"), col = "red", lty = 1)
+```
+
+Pojďme se ještě podívat, jaké výběrové rozdělení můžeme čekat, pokud $n\hat{p} < 10$.
+```{r}
+# populacni relativni cetnost
+p <- 0.15
+n <- 10
+# opakujme 10 000x vybery o velikosti 1000 z teto populace
+n_p_hat <- rbinom(n=10000, size = n, prob = p)
+
+barplot(table(n_p_hat/n), 
+     xlab = "p_hat", 
+     ylab = "Černost", 
+     main = "Rozdělení výběrové relativní četnosti, pokud np<10")
+```
+
+
+Teď když víme, za jakých podmínek můžeme očekávat, že výběrové rozdělení bude normálně rozděleno a jaký tvar bude rozložení mít, si můžeme ukázat jak vypočítat t-test pro relativní četnost. Testovací statistiku vypočítáme jako $t=\frac{\hat{p}-p_o}{\sqrt{\frac{p_{0}(1-p_{0})}{n}}}$. Všimněte si, že tento vzorec je opět stejný jako u jiných testů $testovaci\;statistika=\frac{bodovy\;odhad-nulova\;hypoteza}{smerodatna\;chyba}$. Pojďme si ukázat příklad. 
+
+Podle smlouvy může dodavatel zaslat nejvýše 5% zmetků. Z dodávky 20000 výrobků jste náhodně vybrali 500 výrobků a našli jste 30 zmetků. Zjistěte, zda je pravděpodobné, že dodavatelská firma porušila smlouvu.
+
+$H_0: p \le 0.05$
+
+$H_1: p > 0.05$
+
+
+```{r}
+p_0 <- 0.05
+k <- 30
+n <- 500
+p_hat <- k/n
+s_v <- n-1
+alpha <- 0.01
+
+standardni_chyba <- sqrt(p_0*(1-p_0) / n)
+t <- (p_hat - p_0) / standardni_chyba
+kriticka_mez <- qt(1-alpha, df = s_v)
+
+x <- seq(-4,4,by = 0.001)
+pdf <- dt(x, df = s_v)
+p <- 1-pt(t, df = s_v)
+
+plot(x, pdf, 
+     xlab = "Výběrová relativní četnost", ylab = "f(x)", 
+     main = "Rozložení rozdílu za předpokladu H0",
+     sub = paste0("p-hodnota: ", round(p, 3), " při alpha=", alpha),
+     type = "l")
+abline(v = kriticka_mez, col = "red")
+# oblast zamitnuti H0
+for(i in c(1:length(x))) {
+  if(x[i] > kriticka_mez) {
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01))
+  }
+}
+abline(v = t, lty = 2)
+legend("topleft", 
+       c("kritická mez", "testovací statistika"), 
+       col = c("red", "black"), 
+       lty = c(1,2))
+```
+
+
+Interval spolehlivosti poté můžeme vypočítat jako
+```{r}
+p_hat + qt(c(alpha/2, 1-alpha/2), df = s_v) * standardni_chyba
+```
+
+
+### Test pro porovnání dvou relativních četností
+Stejně jako u dvojvýběrového testu pro průměr, používáme tento test, pokud chceme porovnat relativní četnost pro 2 skupiny. Předpokládáme, že tyto skupiny jsou nezávislé. Testovací statistiku vypočítáme jako $t = \frac{(\hat{p_1}-\hat{p_2}) - (p_1-p_2)}{s_{(\hat{p_1} - \hat{p_2})}}$, kde směrodatná chyba rozdílu $s_{(\hat{p_1} - \hat{p_2})}$ se vypočítá jako $s_{(\hat{p_1} - \hat{p_2})} = \sqrt{\frac{\hat{p_1}(1-\hat{p_1})}{n_1} + \frac{\hat{p_2}(1-\hat{p_2})}{n_2}}$. Pojďme si ukázat na následujícím příkladu. Společnost testuje 2 verze reklam pomocí A/B testing. Návštěvníkům webu se náhodně zobrazí jedna z reklamy. První reklama má click-through rate (% návštěvníků webu, kteří klikli na reklamu) 2%. Druhá reklama má click-through rate 2.8%. Stránky s první verzí reklamy navštívilo 4300 zákazníků. Stránky s druhou verzí reklamy navštívilo 4700 zákazníků. Zjistěte, zda existuje dost dat k tomu, abychom řekli, které reklama je lepší. 
+
+$H_0: \hat{p_1} = \hat{p_2}$
+
+$H_1: \hat{p_1} \ne \hat{p_2}$
+
+
+```{r}
+p_hat_1 <- 0.02
+p_hat_2 <- 0.028
+n_1 <- 4300
+n_2 <- 4700
+s_v <- n_1 + n_2 - 2
+alpha <- 0.1
+
+var_1 <- p_hat_1 * (1-p_hat_1)
+var_2 <- p_hat_2 * (1-p_hat_2)
+standardni_chyba <- sqrt(var_1/n_1 + var_2/n_2)
+
+t <- (p_hat_1 - p_hat_2) / standardni_chyba
+kriticka_mez <- qt(c(alpha/2, 1-alpha/2), df = s_v)
+
+x <- seq(-4,4,by = 0.001)
+pdf <- dt(x, df = s_v)
+p <- (1-pt(abs(t), df = s_v)) * 2
+
+plot(x, pdf, 
+     xlab = "Výběrová relativní četnost", ylab = "f(x)", 
+     main = "Rozložení rozdílu za předpokladu H0",
+     sub = paste0("p-hodnota: ", round(p, 3), " při alpha=", alpha),
+     type = "l")
+abline(v = kriticka_mez, col = "red")
+# oblast zamitnuti H0
+for(i in c(1:length(x))) {
+  if(x[i] > kriticka_mez[2] | x[i] < kriticka_mez[1]) {
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01))
+  }
+}
+abline(v = t, lty = 2)
+legend("topleft", 
+       c("kritická mez", "testovací statistika"), 
+       col = c("red", "black"), 
+       lty = c(1,2))
+```
+
+Interval spolehlivosti rozdílu.
+```{r}
+p_d <- p_hat_1 - p_hat_2
+is <- p_d + kriticka_mez * standardni_chyba
+print(paste0("Interval spolehlivosti na hladině spolehlivosti ", 1-alpha, " je: ", paste0(round(is, 3), collapse = " až ")))
+```

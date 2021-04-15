@@ -1,0 +1,166 @@
+---
+title: "X2 test dobré shody a nezávislosti"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
+```
+
+Klíčove pojmy:
+
+* chikvadrat rozložení
+* chikvadrat test dobré shody
+* chikvadrat test nezávislosti
+
+### Chikvadrat rozložení
+Chikvadrát rozložení ($\chi^2(k)$) je pravděpodobnostní rozložení, které má jediný parameter, počet stupňů volnosti $k$. Např. součet pozorování, které pocházejí z normálního rozložení nabývají $\chi^2$ rozložení. Tyto pozorování jsou umocněny na 2. Pojďme si tuto skutečnost ukázat.
+```{r}
+z <- rnorm(1000)
+hist(z, breaks = 10, main = "Z ~ (0,1)", xlab = "Z")
+chi2 <- z^2
+hist(chi2, breaks = 10, main = "Z2 ~ X2(1)", xlab = "Z2 ~ X2")
+```
+
+V `R` můžeme použít známé funkce pravděpodobnostního rozložení, pro $\chi^2$ použijeme název `chisq`. Pojďme si ukázat, jak vyvořit hustotu pravděpodobnosti a další operace s pravděpodobnostním rozložení, které jsme dělali s normálním, binomickým a studentovým rozložením. Jak jsme viděli nahoře $\chi^2$ rozložení má pouze kladné hodnoty.
+```{r}
+# hustota pravdepodobnosti
+X <- seq(0, 15, by = 0.001)
+k <- 2
+pdf <- dchisq(X, df = k)
+plot(X, pdf,
+     type = "l",
+     xlab = "X", ylab = "f(X)", main = "X2(2)")
+
+# distribucni funkce
+cdf <- 1-pchisq(5, df = k)
+print(paste0("Pravděpodobnost, že x pocházející z X2 rozložení s ", k, " stupni volsnoti, bude > 5 je ", round(cdf, 2)))
+
+# na grafu bychom to zobrazili jako 
+for(i in c(1:length(X))) {
+  if(X[i] > 5) {
+    lines(c(X[i], X[i]), c(-1, pdf[i]), col = adjustcolor("#1f77b4", alpha.f = 0.05))
+  }
+}
+
+# kvantil X2 rozlozeni zjistime takto
+## takto bychom napriklad mohli zjistit median
+x <- qchisq(0.5, df = k)
+# a pridame do grafu
+abline(v = x, col= "red", lwd = 2)
+legend("topright", legend = c("P(X>5)", "Q(0.5)"), lty = c(1,1), col = c("#1f77b4", "red"))
+```
+
+
+### Test dobré shody
+Tento test používáme, pokud chceme porovnat více výběrových relativních četností s teoretickými relativními četnostmi. Tedy, $H_0: F(x) = F_0(x)$ a $H_1: F(x) \ne F_0(x)$. Testovací statistika $\chi^2$ se vypočítá jako $\chi^2 = \sum_{i=1}^k\frac{(n_i - np_i)^2}{np_i}$, kde $n_i$ jsou pozorované četnosti pro danou kategorii a $np_i$ je očekávaná četnost za předpokladu $H_0$ a $k$ je počet kategorií. Tato testovací statistika má $\chi^2$ rozložení s $k-1$ stupni volnosti. Pojďme si ukázat testo test na příkladu hodu kostkou. Ze série vyrobených kostek byla náhodou vybána jedna kostka a bylo provedeno 60 hodů. Máme rozhodnout, zda jsou kostky z této série pravidelné.
+```{r}
+# nase hody
+hody <- c(9,12,7,5,14,13)
+n <- sum(hody)
+# H0: F(x) = F_0(x)
+# H1: F(x) != F_0(x)
+
+# p za predpokladu H0
+p_0 <- rep(1/6)
+
+# testovaci statistika
+chi2 <- sum((hody - n*p_0)^2 / (n*p_0))
+s_v <- length(hody) - 1
+alpha <- 0.01
+kriticka_mez <- qchisq(1-alpha, df = s_v)
+
+# zobrazime
+x <- seq(0, 20, 0.001)
+pdf <- dchisq(x, df = s_v)
+p <- 1-pchisq(chi2, df = s_v)
+
+
+plot(x, pdf, 
+     xlab = "Výběrové statistika", ylab = "f(x)", 
+     main = "Rozložení výběrové statistiky za předpokladu H0",
+     sub = paste0("p-hodnota: ", round(p, 3), " při alpha=", alpha),
+     type = "l")
+abline(v = kriticka_mez, col = "red")
+# oblast zamitnuti H0
+for(i in c(1:length(x))) {
+  if(x[i] > kriticka_mez) {
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01))
+  }
+}
+abline(v = chi2, lty = 2)
+legend("topright", 
+       c("kritická mez", "testovací statistika"), 
+       col = c("red", "black"), 
+       lty = c(1,2))
+
+# tedy nezamitame H0 ve prospech H1, kostka je pravidelna
+```
+
+
+Stejně bychom toho mohli dosáhnout pomocí funkce `chisq.test`.
+```{r}
+chisq.test(x = hody, p = rep(p_0, 6))
+```
+
+
+### Chikvadrát test nezávislosti
+Tento test použijeme, pokud máme dvě proměnné (například $x$ a $y$), která nám tvoří kontingenční tabulku a zajímá nás, zda spolu tyto proměnné souvisí (jsou na sobě závislé). Nulová hypotéza je, že $x$ a $y$ na sobě nejsou závislé a alternativní, že $x$ a $y$ na sobě závislé jsou, tedy $H_0: x \!\perp\!\!\!\perp y$ a $H_1: x \not\!\perp\!\!\!\perp y$. Testovací statistiku opět vypočítáme jako $\chi^2 = \sum_{i=1}^k\frac{(O_i - E_i)^2}{E_i}$, kde $O_i$ značí pozorované četnosti v dané buňce kontingenční tabulky a $E_i$ očekávané četnosti za předpokladu $H_0$. Očekávané četnosti pro danou buňku kontingenční tabulky můžeme vypočítat jako součet hodnot v řádku buňky * součet hodnot v sloupci buňky vydělené celkovým počtem pozorování ve všech buňkách. Tato testovací statistika nabývá $\chi^2$ rozložení s $k_x - 1 * k_y -1$ stupni volnosti. Pojďme si tento test ukázat na následujícím příkladu. Máme kontrolní (`0`) a experimentální skupinu (`1`). Experimentální skupině byla podána vakcína. Po nějaké době změříme u obou skupin počet lidí s danou nemocí (`0` pokud nemoc jedinec neprodělal a `1` pokud prodělal). Zajímá nás, zda existuje souvislost mezi podáním vakcíny a výskytem nemoci.
+```{r}
+# nacteme data
+vaccine <- read.csv("https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/vaccine.csv")
+
+# pomoci xtabs muzeme vytvorit kontingencni tabulku
+t_o <- xtabs( ~ group + disease, data = vaccine)
+print(t_o)
+
+# H0: neexistuje souvislost mezi podanim vakciny a vyskytem nemoci
+# H1: existuje souvislost mezi podanim vakciny a vyskytem nemoci
+
+# nyni vypocitame ocekavane cetnosti za predpokladu H0 (tedy nezavislosti mezi promennymi)
+t_e <- t_o # zkopirujeme si t_o, abychom nemuseli vytvařet objekt o stejnem poctu radku a sloupcu
+## vypocitame ocekavane cetnosti podle postupu popsanem v textu nahore
+t_e[1,1] <- sum(t_o[1, ]) * sum(t_o[, 1]) / sum(t_o) 
+t_e[1,2] <- sum(t_o[1, ]) * sum(t_o[, 2]) / sum(t_o) 
+t_e[2,1] <- sum(t_o[2, ]) * sum(t_o[, 1]) / sum(t_o)
+t_e[2,2] <- sum(t_o[2, ]) * sum(t_o[, 2]) / sum(t_o)
+
+# vypocitame testovaci statistiku
+chi2 <- sum((t_o - t_e)^2 / t_e)
+s_v <- (nrow(t_e) - 1) *  (ncol(t_e) - 1)
+alpha <- 0.05
+kriticka_mez <- qchisq(1-alpha, df = s_v)
+
+# vytvorime graf za predpokladu H0
+x <- seq(0, 65, 0.001)
+pdf <- dchisq(x, df = s_v)
+p <- 1-pchisq(chi2, df = s_v)
+
+plot(x, pdf, 
+     xlab = "Výběrové statistika", ylab = "f(x)", 
+     main = "Rozložení výběrové statistiky za předpokladu H0",
+     sub = paste0("p-hodnota: ", round(p, 3), " při alpha=", alpha),
+     type = "l")
+abline(v = kriticka_mez, col = "red")
+# oblast zamitnuti H0
+for(i in c(1:length(x))) {
+  if(x[i] > kriticka_mez) {
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.005))
+  }
+}
+abline(v = chi2, lty = 2)
+legend("topright", 
+       c("kritická mez", "testovací statistika"), 
+       col = c("red", "black"), 
+       lty = c(1,2))
+```
+
+Stejně tak, bychom mohli použít funkci `chisq.test`.
+```{r}
+chi2_test <- chisq.test(t_o, correct = FALSE)
+chi2_test
+
+# ocekavane cetnosti muzeme extraktovat pomoci chi2_test$expected
+```
