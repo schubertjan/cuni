@@ -1,0 +1,172 @@
+---
+title: "Regrese"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
+```
+
+Klíčové pojmy:
+
+* závislá/nezávislá proměnná
+* rovnice přímky
+* konstanta a směrnice
+* metoda nejmenších čtverců
+* interval spolehlivosti pro směrnici
+* předpoklady lineární regrese
+
+Regresní analýza se používá k popsání vztahu mezi dvěma kardinálními proměnnými. S konceptem závislé a nezávislé proměnné jsme se seznámili při analýze rozptylu. Závislá proměnná je taková proměnná, kterou se snažíme vysvětlit. Nezávislá proměnné je taková, kterou používáme k vysvětlení závislé proměnné. Pojďme si tuto analýzu ukázat na příkladu vztahu mezi výškou a váhou.
+```{r}
+d <- read.csv("https://raw.githubusercontent.com/schubertjan/cuni/master/stats/data/vyska_vaha.csv")
+head(d)
+# nejprve se musime rozhodnout, co udelat s chybejicicmi hodnotami
+# vyradime vsechny, kde je vaha nebo vyska NA. To se rovna cor(d$vyska, d$vaha, use="complete.obs")
+d <- d[!is.na(d$vyska) & !is.na(d$vaha), ]
+# kontrola
+sum(is.na(d))
+
+# zobrazime vztah
+plot(d$vyska, d$vaha, 
+     xlab = "Výška",
+     ylab = "Váha",
+     pch = 19,
+     col = adjustcolor("black", alpha.f = 0.3))
+```
+
+Při regresní analýze protneme přímku mezi body obou (nebo více) proměnných. Přímka je popsána dvěma parametry - konstantou a směrnicí. Konstanta ( $\alpha$ nebo také $\beta_0$) vyjadřuje hodnotu, v které přímka protne osu $y$, pokud je $x=0$. Směrnice ($\beta$) vyjadřuje, o kolik se změní přímka, pokud $x$ vzroste o jednotku. Tedy, $y_i=\alpha+\beta X_i$.
+
+
+Tuto přímku potřebujeme body protnout tak, abychom minimalizovali chybu přímky $e$, respektive její sumu čtverců $\sum_{i=1}^n e_i^2$. Parametry takové přímky bychom mohli vypočítat jako $\beta=(X^TX)^{-1}X^TY$. V R bychom tuto přímku mohli vypočítat pomocí funkce `lm`.
+
+Pojďme si tuto chybu ukázat na příkladě.
+```{r}
+m <- lm(d$vaha ~ d$vyska)
+
+plot(d$vyska, d$vaha, 
+     xlab = "Výška",
+     ylab = "Váha",
+     pch = 19,
+     col = adjustcolor("black", alpha.f = 0.3))
+abline(m, lty = 2, lwd = 2)
+legend("topleft", 
+       legend = paste0("y=", round(coef(m)[1], 2), "+", round(coef(m)[2], 2), "X"), 
+       lty= 2, 
+       col = "black")
+```
+
+Pokud bychom chtěli parametry vypočítat pomocí vzorce nahoře.
+```{r}
+# pripravime si y a X. Pridame sloupec jednicek, protoze pocitame s konstantou
+y <- d$vaha
+X <- cbind(rep(1, nrow(d)), d$vyska)
+# reseni 
+params <- solve(t(X) %*% X)%*%t(X)%*%y
+
+print(paste0("Konstanta: ", params[1,1]))
+print(paste0("Směrnice: ", params[2,1]))
+```
+
+Směrnice má hodnotu zhruba o 1.02, tedy pokud vzroste výška o 1cm, v průměru vzroste váha o 1.02kg. Hodnota konstanty -105.4  znamená, že pokud bude výška 0cm bude (v průměru) váha -105.4kg. To je samozřejmě nesmysl, ale v našem malém modelu, kde existují pouze lineární vztahy, je toto správný výpočet.
+
+Skoro nikdy nebudou ležet všechny body přesně na přímce. To, jak dobře přímka vystihuje lineární vztah dvou proměnných můžeme měřit pomocí míry celkového rozptylu, který můžeme vysvětlit naší přímkou $R^2 = 1-\frac{SS_{e}}{SS_{total}}$. Sumu čtverců jsme si ukazovali při analýze rozptylu. Tento obrazek vystihuje vzorec $R^2$ graficky. Červená suma čtverců vyjadřuje $SS_{total}$ a modrá $SS_{e}$. Toto číslo můžeme také interpretovat jako % celkové variability $y$, které je možné vysvětlit našim modelem.
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Coefficient_of_Determination.svg/800px-Coefficient_of_Determination.svg.png)
+
+Většinou náš model (naše přímka) nevystihne všechnu variabilitu v závislé proměnné $y$. To, co nedokážeme vysvětlit našim modelem označujeme jako $e$. Naši regresní přímku tedy zapíšeme jako $y_i=\alpha+\beta X_i + e_i$. Stejně jako u ostatních statistik, pokud počítáme regresní přímku na výběru, existuje určitá míra nejistoty ohledně populačním parametrů (populační konstanty a směrnice, tedy takové přímky, jakou bychom vypočítali, kdybychom měli data za všechna pozorování, ne pouze za výběr). A stejně jako u ostatních statistik, můžeme u parametrů přímky vypočítat standardní chybu. Tyto standarní chyby využívají rozptyl chyby $s{_e} = \frac{\sum_{i=1}^n e_i^2}{(n-p)}$, kde $n$ je počet pozorování a $p$ je počet parametrů. Standardní chybu směrnice vypočítáme jako $s_{\beta_1} = s_{e}\sqrt\frac{1}{\sum_{i=1}^n (x_i - \bar{x})^2}$ a standardní chybu konstanty jako $s_{\alpha} = s_{e}\sqrt{\frac{1}{n}+\frac{\bar{x}^2}{\sum_{i=1}^n (x_i - \bar{x})^2}}$. V R můžeme tyto hodnoty získat pomocí funkce `summary`, kterou použijeme na objektu, do kterého jsme uložili výsledky našeho modelu. Při dodržení předpokladů regresní analýzy mají testovací statistiky parametrů t rozdělení s $n-p$ stupni volnosti.
+```{r}
+s <- summary(m)
+s_a <- s$coefficients[, 1]
+s_b <- s$coefficients[, 2]
+
+# nebo rucne pomoci vzorce  
+n <- nrow(d)
+p <- 2
+s_e <- sqrt(sum(m$residuals^2) / (n-p))
+s_b <- s_e*sqrt(1/(sum((d$vyska - mean(d$vyska))^2)))
+s_a <- s_e*sqrt((1/n) + mean(d$vyska)^2/(sum((d$vyska - mean(d$vyska))^2)))
+```
+
+Ukažme si příklad testování směrnice. Nulovou hypotézu můžeme formulovat například jako $H_0: \beta = 0$ a tedy $H_1 \ne 0$. Stejně ale můžeme zvolit pravo/levo stranný test a jinou než 0 hodnotu nulové hypotézy. Například $H_0 \le4$a $H_1>4$. Testovací statistiku vypočítáme jako $t = \frac{\hat{\beta}- H_0}{s_{\beta_1}}$.
+
+```{r}
+# H0: b = 0
+# H1: b != 0
+t <- coef(m)[2] / s_b
+s_v <- n-p
+alpha <- 0.05
+kriticka_mez <- qt(c(alpha/2, 1-alpha/2), df = s_v)
+p <- (1-pt(abs(t), df = s_v))*2
+
+x <- seq(-4,24,by=0.001)
+pdf <- dt(x, df = s_v)
+
+plot(x, pdf, 
+     xlab = "Testovací statistika", ylab = "f(x)", 
+     main = "Rozložení testovací statistiky za předpokladu H0",
+     sub = paste0("p-hodnota: ", p, " při alpha=", alpha),
+     type = "l")
+abline(v = kriticka_mez[1], col = "red")
+abline(v = kriticka_mez[2], col = "red")
+# oblast zamitnuti H0
+for(i in c(1:length(x))) {
+  if(x[i] > kriticka_mez[2] | x[i] < kriticka_mez[1]) {
+    lines(c(x[i], x[i]), c(-1, pdf[i]), 
+          col = adjustcolor("red", alpha.f = 0.01))
+  }
+}
+abline(v = t, lty = 2)
+legend("topleft", 
+       c("kritická mez", "testovací statistika"), 
+       col = c("red", "black"), 
+       lty = c(1,2))
+```
+
+Stejně tak bychom mohli vypočítat interval spolehlivosti pro $\hat{\beta}$.
+```{r}
+is <- coef(m)[2] + kriticka_mez * s_b
+print(paste0("Interval spolehlivosti pro beta je: ", paste0(round(is, 2), collapse = " až ")))
+```
+
+
+Stejně tak bychom tento výpočet mohli udělat pomocí funkce `confint`.
+```{r}
+confint(m)
+```
+
+
+Předpoklady lineární regrese při použití metody nejmenších čtverců:
+
+1. $e$ jsou normálně rozloženy s průměrem 0 a směrodatnou odchylkou rovnou $s_{e}$.
+
+2. rozptyl chyb $e$ je homogenní po celé délce přímky
+
+3. jednotlivé body $(x_i, y_i)$ jsou mezi sebou nezávislé
+
+
+Bod 1. můžeme ověřit pomocí histogramu $e$ a výpočtu průměru a směrodatné odchylky $e$ a jejich porovnání s teoretickou hodnotou.
+```{r}
+e <- m$residuals
+e_prumer <- round(mean(e), 2)
+e_sd <- round(sd(e), 2)
+hist(e, 
+     main = paste0("E ~ N(", e_prumer, "; ", e_sd, ")"), 
+     col = adjustcolor("black", alpha.f = 0.3))
+
+print(paste0("Teoretická směrodatná odchylka: ", round(s_e, 2)))
+print(paste0("Směrodatná odchylka chyb: ", e_sd))
+```
+
+
+Bod 2. nejlépe ověříme pomocí grafu proměnné $X$ a $e$. Pokud tento graf odhalí závislost není chyba $e$ na $X$ nezávislá.
+```{r}
+r <- round(cor(d$vyska, e), 2)
+plot(d$vyska, e, 
+     xlab = "Výška", main = paste0("Vztah mezi X a e; r=", r), 
+     pch = 19,
+     col = adjustcolor("black", alpha.f = 0.3))
+abline(lm(e ~ d$vyska), col = "red", lwd = 2)
+```
+
+
+3. Tento předpoklad můžeme ověřit z designu výzkumu, pomocí kterého jsme data sbírali. Tedy, zda jedna hodnota x závisí na jiné hodnotě x a stejně tak u y. Příkladem nezávislých pozorování x je například náhodný výběr jedinců z populace. Příkladem závislých pozorování je například časová řada pozorování, kde pozorování závisí na předchozích pozorováních. 
